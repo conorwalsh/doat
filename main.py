@@ -6,6 +6,8 @@ import subprocess
 import time
 from tqdm import tqdm
 
+#Test
+
 doat_motd()
 
 print("Starting Process")
