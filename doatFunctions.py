@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 import os
 import sys
+from tqdm import tqdm
+import time
+import signal
 
 #https://stackoverflow.com/questions/568271/how-to-check-if-there-exists-a-process-with-a-given-pid-in-python/6940314
 def check_pid(pid):
@@ -19,4 +22,11 @@ def sys_check():
         sys.exit("RTE_SDK has not been set, ABORT!")
     if "RTE_TARGET" not in os.environ:
         sys.exit("RTE_TARGET has not been set, ABORT!")
-    print("System Checks PASSED")        
+    print("System Checks PASSED")
+
+def progress_bar(seconds):
+    for x in tqdm(range(seconds, 0, -1)):
+        time.sleep(1)
+
+def kill_group_pid(pid):
+    os.killpg(os.getpgid(pid), signal.SIGTERM)
