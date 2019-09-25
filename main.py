@@ -10,7 +10,6 @@ doat_motd()
 #Check system setup
 sys_check()
 
-#Read and check config options from config file
 config = configparser.ConfigParser()
 config.read('config.cfg')
 dpdkcmd=config['DOAT']['dpdkcmd']
@@ -65,9 +64,13 @@ else:
     else:
         sys.exit("DPDK app cores must be on the same socket, ABORT!")
 
+subprocess.call("taskset -cp "+str(testcore)+" "+str(os.getpid()), shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+print("Test pinned to core",testcore,"PID:",os.getpid())
+
 print("Starting Process")
-FNULL = open(os.devnull, 'w')
-proc = subprocess.Popen(dpdkcmd, stdout=FNULL, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid) 
+#FNULL = open(os.devnull, 'w')
+#proc = subprocess.Popen(dpdkcmd, stdout=FNULL, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid) 
+proc = subprocess.Popen(dpdkcmd, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
 testpid = proc.pid
 
 if check_pid(testpid):
