@@ -6,6 +6,8 @@ import configparser
 import pandas
 import numpy as np
 import atexit
+import matplotlib.pyplot as plt
+from http.server import SimpleHTTPRequestHandler, HTTPServer
 
 #Print startup message
 doat_motd()
@@ -66,6 +68,11 @@ else:
         print("DPDK app running on socket",appsocket)
     else:
         sys.exit("DPDK app cores must be on the same socket, ABORT!")
+pcmdir=config['TOOLS']['pcmdir']
+if pcmdir is not None:
+    print("PCM directory:",pcmdir)
+else:
+    sys.exit("No PCM directory was specified (pcmdir in config.cfg), ABORT!")
 
 subprocess.call("taskset -cp "+str(testcore)+" "+str(os.getpid()), shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 print("Test pinned to core",testcore,"PID:",os.getpid())
@@ -74,16 +81,17 @@ print("Starting Process")
 proc = subprocess.Popen(dpdkcmd, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
 testpid = proc.pid
 
-#TODO Dont run on actual exit only CTRL+c and also deal with 
+#TODO Deal with measurement  
 #Once Test Process is spawned add catch to kill test process if test abandoned
-#def safeexit():
-#    try:    
-#        os.remove("tmp/doattemp.csv")
-#    except:
-#        pass
-#    kill_group_pid(testpid)
-#    print("Aborting Test . . .")
-#atexit.register(safeexit)
+def safeexit():
+    try:    
+        os.system("rm -rf tmp")
+        os.remove("index.html")
+        kill_group_pid(testpid)
+    except:
+        pass
+    print("Exiting . . .")
+atexit.register(safeexit)
 
 if check_pid(testpid):
     print("Test process starting")
@@ -99,8 +107,11 @@ else:
     print("Test process started successfully, , PID: ",testpid)
 
 print('Starting Measurements . . .')
-membw = subprocess.Popen('/root/walshc/pcm/pcm-memory.x 0.25 -csv=tmp/doattemp.csv', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
+membw = subprocess.Popen(pcmdir+'pcm-memory.x 0.25 -csv=tmp/doattemp.csv', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
 progress_bar(2)
+if membw.poll() is not None:
+    kill_group_pid(testpid)
+    sys.exit("PCM died or failed to start, ABORT!")
 
 print("Running Test . . .")
 progress_bar(testruntime)
@@ -115,17 +126,40 @@ kill_group_pid(testpid)
 kill_group_pid(membw.pid)
 
 membwdata = pandas.read_csv('tmp/doattemp.csv',sep=';',)
-print(membwdata)
+#print(membwdata)
 
-socket0read = np.asarray((membwdata["SKT0.8"].tolist())[1:]).astype(np.float)
-socket0write = np.asarray((membwdata["SKT0.9"].tolist())[1:]).astype(np.float)
+socketread = np.asarray((membwdata["SKT"+str(appsocket)+".8"].tolist())[1:]).astype(np.float)
+socketwrite = np.asarray((membwdata["SKT"+str(appsocket)+".9"].tolist())[1:]).astype(np.float)
 
-#print("Read:", socket0read)
-#print("Write:", socket0write)
+socketreadavg = round(sum(socketread)/len(socketread), 2)
+socketwriteavg = round(sum(socketwrite)/len(socketwrite), 2)
+socketwritereadratio = round(socketwriteavg/socketreadavg,2)
 
-print("Read Avg:",round(sum(socket0read)/len(socket0read), 2),"MBps")
-print("Write Avg:",round(sum(socket0write)/len(socket0write), 2),"MBps")
+socketx = []
+timex = 0;
+for x in socketread:
+    socketx.append(timex)
+    timex += 0.25
 
-os.remove("tmp/doattemp.csv")
+plt.plot(socketx, socketread, label = "Read")
+plt.plot(socketx, socketwrite, label = "Write")
+plt.xlabel("Time (Seconds)")
+plt.ylabel("Bandwidth (MBps)")
+plt.title("Memory Bandwidth")
+plt.legend()
+plt.savefig("./tmp/membw.png", bbox_inches="tight")
+indexfile=open("index.html","w")
+indexfile.write("<html><body><h1>DOAT Report</h1><h2>Memory Bandwidth</h2><img src='./tmp/membw.png'/><p>Read Avg: "+str(socketreadavg)+"MBps</p><p>Write Avg: "+str(socketwriteavg)+"MBps</p><p>Write to Read Ratio: "+str(socketwritereadratio)+"</p><p><a href='./tmp/doattemp.csv'>Download CSV</a></body></html>")
+indexfile.close()
 
-print("Exiting . . .")
+print("Read Avg: ",socketreadavg,"MBps")
+print("Write Avg: ",socketwriteavg,"MBps")
+print("Write to Read Ratio: ",socketwritereadratio)
+
+server_address = ('', 80)   
+print("Serving results on port 80")
+httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
+try:                                                                                                                                  
+    httpd.serve_forever()
+except Exception:
+    httpd.server_close()
