@@ -74,6 +74,9 @@ if pcmdir is not None:
 else:
     sys.exit("No PCM directory was specified (pcmdir in config.cfg), ABORT!")
 
+if not os.path.exists("tmp"):
+    os.makedirs('tmp')
+
 subprocess.call("taskset -cp "+str(testcore)+" "+str(os.getpid()), shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 print("Test pinned to core",testcore,"PID:",os.getpid())
 
@@ -107,11 +110,15 @@ else:
     print("Test process started successfully, , PID: ",testpid)
 
 print('Starting Measurements . . .')
-membw = subprocess.Popen(pcmdir+'pcm-memory.x 0.25 -csv=tmp/doattemp.csv', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
+membw = subprocess.Popen(pcmdir+'pcm-memory.x 0.25 -csv=tmp/membw.csv', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
+wallp = subprocess.Popen("echo 'power,time\n' > tmp/wallpower.csv; while true; do ipmitool sdr | grep 'PS1 Input Power' | cut -c 20- | cut -f1 -d 'W' | tr -d '\n' | sed 's/.$//' >> tmp/wallpower.csv; echo -n ',' >> tmp/wallpower.csv; date +%s >> tmp/wallpower.csv; sleep 0.5; done", stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
 progress_bar(2)
 if membw.poll() is not None:
-    kill_group_pid(testpid)
+    kill_group_pid(membw.pid)
     sys.exit("PCM died or failed to start, ABORT!")
+if wallp.poll() is not None:
+    kill_group_pid(wallp.pid)
+    sys.exit("IPMItool died or failed to start, ABORT!")
 
 print("Running Test . . .")
 progress_bar(testruntime)
@@ -124,9 +131,9 @@ else:
 print("Killing test process")
 kill_group_pid(testpid)
 kill_group_pid(membw.pid)
+kill_group_pid(wallp.pid)
 
-membwdata = pandas.read_csv('tmp/doattemp.csv',sep=';',)
-#print(membwdata)
+membwdata = pandas.read_csv('tmp/membw.csv',sep=';',)
 
 socketread = np.asarray((membwdata["SKT"+str(appsocket)+".8"].tolist())[1:]).astype(np.float)
 socketwrite = np.asarray((membwdata["SKT"+str(appsocket)+".9"].tolist())[1:]).astype(np.float)
@@ -141,23 +148,48 @@ for x in socketread:
     socketx.append(timex)
     timex += 0.25
 
+plt.figure(0)
 plt.plot(socketx, socketread, label = "Read")
 plt.plot(socketx, socketwrite, label = "Write")
 plt.xlabel("Time (Seconds)")
 plt.ylabel("Bandwidth (MBps)")
 plt.title("Memory Bandwidth")
 plt.legend()
+plt.ylim(bottom=0)
+plt.ylim(top=(max(socketwrite)+100))
 plt.savefig("./tmp/membw.png", bbox_inches="tight")
+
+wallpdata = pandas.read_csv('tmp/wallpower.csv',sep=',',)
+wallpower = np.asarray(wallpdata["power"].tolist()).astype(np.int)
+wallpowertime = np.asarray(wallpdata["time"].tolist()).astype(np.int)
+wallpowertimezero = wallpowertime[0]
+wallpowerx = []
+for x in wallpowertime:
+    wallpowerx.append(x-wallpowertimezero)
+wallpoweravg = round(sum(wallpower)/len(wallpower),1)
+
+plt.figure(1)
+plt.plot(wallpowerx, wallpower, label = "Wall Power")
+plt.xlabel("Time (Seconds)")
+plt.ylabel("Power (Watts)")
+plt.title("Wall Power")
+plt.legend()
+plt.ylim(bottom=0)
+plt.ylim(top=(max(wallpower)+50))
+plt.savefig("./tmp/wallpower.png", bbox_inches="tight")
+
 indexfile=open("index.html","w")
-indexfile.write("<html><body><h1>DOAT Report</h1><h2>Memory Bandwidth</h2><img src='./tmp/membw.png'/><p>Read Avg: "+str(socketreadavg)+"MBps</p><p>Write Avg: "+str(socketwriteavg)+"MBps</p><p>Write to Read Ratio: "+str(socketwritereadratio)+"</p><p><a href='./tmp/doattemp.csv'>Download CSV</a></body></html>")
+indexfile.write("<html><body><h1>DOAT Report</h1><h2>Memory Bandwidth</h2><img src='./tmp/membw.png'/><p>Read Avg: "+str(socketreadavg)+"MBps</p><p>Write Avg: "+str(socketwriteavg)+"MBps</p><p>Write to Read Ratio: "+str(socketwritereadratio)+"</p><p><a href='./tmp/membw.csv'>Download Memory BW CSV</a><h2>Wall Power</h2><img src='./tmp/wallpower.png'/><p>Wall Power Avg: "+str(wallpoweravg)+"Watts</p><p><a href='./tmp/wallpower.csv'>Download Power CSV</a></body></html>")
 indexfile.close()
 
-print("Read Avg: ",socketreadavg,"MBps")
-print("Write Avg: ",socketwriteavg,"MBps")
-print("Write to Read Ratio: ",socketwritereadratio)
+print("Read Avg:",socketreadavg,"MBps")
+print("Write Avg:",socketwriteavg,"MBps")
+print("Write to Read Ratio:",socketwritereadratio)
+print("Wall Power Avg:",wallpoweravg)
 
 server_address = ('', 80)   
 print("Serving results on port 80")
+print("CTRL+c to kill server and exit")
 httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
 try:                                                                                                                                  
     httpd.serve_forever()
