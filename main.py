@@ -110,15 +110,19 @@ else:
     print("Test process started successfully, , PID: ",testpid)
 
 print('Starting Measurements . . .')
-membw = subprocess.Popen(pcmdir+'pcm-memory.x 0.25 -csv=tmp/membw.csv', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
+#membw = subprocess.Popen(pcmdir+'pcm-memory.x 0.25 -csv=tmp/membw.csv', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
+pcm = subprocess.Popen(pcmdir+'pcm.x 0.25 -csv=tmp/pcm.csv', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
 wallp = subprocess.Popen("echo 'power,time\n' > tmp/wallpower.csv; while true; do ipmitool sdr | grep 'PS1 Input Power' | cut -c 20- | cut -f1 -d 'W' | tr -d '\n' | sed 's/.$//' >> tmp/wallpower.csv; echo -n ',' >> tmp/wallpower.csv; date +%s >> tmp/wallpower.csv; sleep 0.5; done", stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
 progress_bar(2)
-if membw.poll() is not None:
-    kill_group_pid(membw.pid)
-    sys.exit("PCM died or failed to start, ABORT!")
+#if membw.poll() is not None:
+#    kill_group_pid(membw.pid)
+#    sys.exit("PCM died or failed to start, ABORT!")
 if wallp.poll() is not None:
     kill_group_pid(wallp.pid)
     sys.exit("IPMItool died or failed to start, ABORT!")
+if pcm.poll() is not None:
+    kill_group_pid(pcm.pid)
+    sys.exit("PCM died or failed to start, ABORT!")
 
 print("Running Test . . .")
 progress_bar(testruntime)
@@ -130,17 +134,60 @@ else:
 
 print("Killing test process")
 kill_group_pid(testpid)
-kill_group_pid(membw.pid)
+#kill_group_pid(membw.pid)
+kill_group_pid(pcm.pid)
 kill_group_pid(wallp.pid)
 
-membwdata = pandas.read_csv('tmp/membw.csv',sep=';',)
+f = open('tmp/pcm.csv','r')
+filedata = f.read()
+f.close()
 
-socketread = np.asarray((membwdata["SKT"+str(appsocket)+".8"].tolist())[1:]).astype(np.float)
-socketwrite = np.asarray((membwdata["SKT"+str(appsocket)+".9"].tolist())[1:]).astype(np.float)
+newdata = filedata.replace(";",",")
+
+f = open('tmp/pcm.csv','w')
+f.write(newdata)
+f.close()
+
+pcmdata = pandas.read_csv('tmp/pcm.csv')
+
+socketread = np.asarray((pcmdata.iloc[:,pcmdata.columns.get_loc("Socket"+str(appsocket))+13].tolist())[1:]).astype(np.float) * 1000
+socketwrite = np.asarray((pcmdata.iloc[:,pcmdata.columns.get_loc("Socket"+str(appsocket))+14].tolist())[1:]).astype(np.float) * 1000
 
 socketreadavg = round(sum(socketread)/len(socketread), 2)
 socketwriteavg = round(sum(socketwrite)/len(socketwrite), 2)
 socketwritereadratio = round(socketwriteavg/socketreadavg,2)
+
+if appmasterenabled is True:
+    l3missmaster = np.asarray((pcmdata.iloc[:,pcmdata.columns.get_loc("Core"+str(appmaster)+" (Socket "+str(appsocket)+")")+4].tolist())[1:]).astype(np.float)*1000*1000
+    l2missmaster = np.asarray((pcmdata.iloc[:,pcmdata.columns.get_loc("Core"+str(appmaster)+" (Socket "+str(appsocket)+")")+5].tolist())[1:]).astype(np.float)*1000*1000
+    l3hitmaster = np.asarray((pcmdata.iloc[:,pcmdata.columns.get_loc("Core"+str(appmaster)+" (Socket "+str(appsocket)+")")+6].tolist())[1:]).astype(np.float)*100
+    l2hitmaster = np.asarray((pcmdata.iloc[:,pcmdata.columns.get_loc("Core"+str(appmaster)+" (Socket "+str(appsocket)+")")+7].tolist())[1:]).astype(np.float)*100
+    l3missmasteravg = round(sum(l3missmaster)/len(l3missmaster),1)
+    l2missmasteravg = round(sum(l2missmaster)/len(l2missmaster),1)
+    l3hitmasteravg = round(sum(l3hitmaster)/len(l3hitmaster),1)
+    l2hitmasteravg = round(sum(l2hitmaster)/len(l2hitmaster),1)
+
+l3misscore = []
+l2misscore = []
+l3hitcore = []
+l2hitcore = []
+for x in appcores:
+    l3misscore.append(np.asarray((pcmdata.iloc[:,pcmdata.columns.get_loc("Core"+str(x)+" (Socket "+str(appsocket)+")")+4].tolist())[1:]).astype(np.float)*1000*1000)
+    l2misscore.append(np.asarray((pcmdata.iloc[:,pcmdata.columns.get_loc("Core"+str(x)+" (Socket "+str(appsocket)+")")+5].tolist())[1:]).astype(np.float)*1000*1000)
+    l3hitcore.append(np.asarray((pcmdata.iloc[:,pcmdata.columns.get_loc("Core"+str(x)+" (Socket "+str(appsocket)+")")+6].tolist())[1:]).astype(np.float)*100)
+    l2hitcore.append(np.asarray((pcmdata.iloc[:,pcmdata.columns.get_loc("Core"+str(x)+" (Socket "+str(appsocket)+")")+7].tolist())[1:]).astype(np.float)*100)
+l3misscoreavg = []
+l2misscoreavg = []
+l3hitcoreavg = []
+l2hitcoreavg = []
+for x in l3misscore:
+    l3misscoreavg.append(round(sum(x)/len(x),1))
+for x in l2misscore:
+    l2misscoreavg.append(round(sum(x)/len(x),1))
+for x in l3hitcore:
+    l3hitcoreavg.append(round(sum(x)/len(x),1))
+for x in l2hitcore:
+    l2hitcoreavg.append(round(sum(x)/len(x),1))
 
 socketx = []
 timex = 0;
@@ -158,6 +205,7 @@ plt.legend()
 plt.ylim(bottom=0)
 plt.ylim(top=(max(socketwrite)+100))
 plt.savefig("./tmp/membw.png", bbox_inches="tight")
+membwhtml = "<h2>Memory Bandwidth</h2><img src='./tmp/membw.png'/><p>Read Avg: "+str(socketreadavg)+"MBps</p><p>Write Avg: "+str(socketwriteavg)+"MBps</p><p>Write to Read Ratio: "+str(socketwritereadratio)+"</p><p><a href='./tmp/pcm.csv'>Download Full PCM CSV</a>"
 
 wallpdata = pandas.read_csv('tmp/wallpower.csv',sep=',',)
 wallpower = np.asarray(wallpdata["power"].tolist()).astype(np.int)
@@ -167,6 +215,7 @@ wallpowerx = []
 for x in wallpowertime:
     wallpowerx.append(x-wallpowertimezero)
 wallpoweravg = round(sum(wallpower)/len(wallpower),1)
+wallpowerhtml = "<h2>Wall Power</h2><img src='./tmp/wallpower.png'/><p>Wall Power Avg: "+str(wallpoweravg)+"Watts</p><p><a href='./tmp/wallpower.csv'>Download Power CSV</a>"
 
 plt.figure(1)
 plt.plot(wallpowerx, wallpower, label = "Wall Power")
@@ -178,14 +227,82 @@ plt.ylim(bottom=0)
 plt.ylim(top=(max(wallpower)+50))
 plt.savefig("./tmp/wallpower.png", bbox_inches="tight")
 
+plt.figure(2)
+for i,y in enumerate(l3misscore):
+    plt.plot(socketx, y, label = "Core "+str(appcores[i]))
+if appmasterenabled is True:
+    plt.plot(socketx, l3missmaster, label = "Master Core ("+str(appmaster)+")")
+plt.xlabel("Time (Seconds)")
+plt.ylabel("L3 Miss Count")
+plt.title("L3 Cache Misses")
+plt.legend()
+plt.ylim(bottom=0)
+plt.savefig("./tmp/l3miss.png", bbox_inches="tight")
+l3misshtml = "<h2>L3 Cache</h2><img src='./tmp/l3miss.png'/>"
+if appmasterenabled is True:
+    l3misshtml += "<p>Master Core ("+str(appmaster)+") L3 Misses: "+str(l3missmasteravg)+"</p>"
+for i,x in enumerate(l3misscoreavg):
+    l3misshtml += "<p>Core "+str(appcores[i])+" L3 Misses: "+str(x)+"</p>"
+
+plt.figure(3)
+for i,y in enumerate(l2misscore):
+    plt.plot(socketx, y, label = "Core "+str(appcores[i]))
+if appmasterenabled is True:
+    plt.plot(socketx, l2missmaster, label = "Master Core ("+str(appmaster)+")")
+plt.xlabel("Time (Seconds)")
+plt.ylabel("L2 Miss Count")
+plt.title("L2 Cache Misses")
+plt.legend()
+plt.ylim(bottom=0)
+plt.savefig("./tmp/l2miss.png", bbox_inches="tight")
+l2misshtml = "<h2>L2 Cache</h2><img src='./tmp/l2miss.png'/>"
+if appmasterenabled is True:
+    l2misshtml += "<p>Master Core ("+str(appmaster)+") L2 Misses: "+str(l3missmasteravg)+"</p>"
+for i,x in enumerate(l2misscoreavg):
+    l2misshtml += "<p>Core "+str(appcores[i])+" L2 Misses: "+str(x)+"</p>"
+
+plt.figure(4)
+for i,y in enumerate(l3hitcore):
+    plt.plot(socketx, y, label = "Core "+str(appcores[i]))
+if appmasterenabled is True:
+    plt.plot(socketx, l3hitmaster, label = "Master Core ("+str(appmaster)+")")
+plt.xlabel("Time (Seconds)")
+plt.ylabel("L3 Hit (%)")
+plt.title("L3 Cache Hits")
+plt.legend()
+plt.ylim(bottom=0)
+plt.savefig("./tmp/l3hit.png", bbox_inches="tight")
+l3hithtml = "<img src='./tmp/l3hit.png'/>"
+if appmasterenabled is True:
+    l3hithtml += "<p>Master Core ("+str(appmaster)+") L3 Hits: "+str(l3hitmasteravg)+"%</p>"
+for i,x in enumerate(l3hitcoreavg):
+    l3hithtml += "<p>Core "+str(appcores[i])+" L3 Hits: "+str(x)+"%</p>"
+
+plt.figure(5)
+for i,y in enumerate(l2hitcore):
+    plt.plot(socketx, y, label = "Core "+str(appcores[i]))
+if appmasterenabled is True:
+    plt.plot(socketx, l2hitmaster, label = "Master Core ("+str(appmaster)+")")
+plt.xlabel("Time (Seconds)")
+plt.ylabel("L2 Hit (%)")
+plt.title("L2 Cache Hits")
+plt.legend()
+plt.ylim(bottom=0)
+plt.savefig("./tmp/l2hit.png", bbox_inches="tight")
+l2hithtml = "<img src='./tmp/l2hit.png'/>"
+if appmasterenabled is True:
+    l2hithtml += "<p>Master Core ("+str(appmaster)+") L3 Hits: "+str(l2hitmasteravg)+"%</p>"
+for i,x in enumerate(l2hitcoreavg):
+    l2hithtml += "<p>Core "+str(appcores[i])+" L2 Hits: "+str(x)+"%</p>"
+
 indexfile=open("index.html","w")
-indexfile.write("<html><body><h1>DOAT Report</h1><h2>Memory Bandwidth</h2><img src='./tmp/membw.png'/><p>Read Avg: "+str(socketreadavg)+"MBps</p><p>Write Avg: "+str(socketwriteavg)+"MBps</p><p>Write to Read Ratio: "+str(socketwritereadratio)+"</p><p><a href='./tmp/membw.csv'>Download Memory BW CSV</a><h2>Wall Power</h2><img src='./tmp/wallpower.png'/><p>Wall Power Avg: "+str(wallpoweravg)+"Watts</p><p><a href='./tmp/wallpower.csv'>Download Power CSV</a></body></html>")
+indexfile.write("<html><body><h1>DOAT Report</h1>"+membwhtml+wallpowerhtml+l3misshtml+l3hithtml+l2misshtml+l2hithtml+"</body></html>")
 indexfile.close()
 
-print("Read Avg:",socketreadavg,"MBps")
-print("Write Avg:",socketwriteavg,"MBps")
-print("Write to Read Ratio:",socketwritereadratio)
-print("Wall Power Avg:",wallpoweravg)
+#print("Read Avg:",socketreadavg,"MBps")
+#print("Write Avg:",socketwriteavg,"MBps")
+#print("Write to Read Ratio:",socketwritereadratio)
+#print("Wall Power Avg:",wallpoweravg,"Watts")
 
 server_address = ('', 80)   
 print("Serving results on port 80")
