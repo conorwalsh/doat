@@ -17,11 +17,6 @@ sys_check()
 
 config = configparser.ConfigParser()
 config.read('config.cfg')
-dpdkcmd=config['DOAT']['dpdkcmd']
-if dpdkcmd is not None:
-    print("DPDK app launch command:",dpdkcmd)
-else:
-    sys.exit("No DPDK command was specified (dpdkcmd in config.cfg), ABORT!")
 startuptime=int(config['DOAT']['startuptime'])
 if startuptime is not None:
     print("Startup time for DPDK App:",startuptime)
@@ -32,6 +27,22 @@ if testruntime is not None:
     print("Startup time for DPDK App:",testruntime)
 else:
     sys.exit("No test run time was specified (testruntime in config.cfg), ABORT!")
+serverport=int(config['DOAT']['serverport'])
+if serverport is not None:
+    print("Results server port:",serverport)
+else:
+    sys.exit("No server port was specified (serverport in config.cfg), ABORT!")
+dpdkcmd = config['APPPARAM']['dpdkcmd']
+if dpdkcmd is not None:
+    print("DPDK app launch command:",dpdkcmd)
+else:
+    sys.exit("No DPDK command was specified (dpdkcmd in config.cfg), ABORT!")
+telemetryenabled=False
+if config['APPPARAM']['telemetry'] is '1':
+    telemetryenabled=True
+    print("DPDK telemetry is enabled")
+else:
+    print("DPDK telemetry is disabled")
 testcore=int(config['CPU']['testcore'])
 testsocket=int(subprocess.check_output("cat /proc/cpuinfo | grep -A 18 'processor\s\+: "+str(testcore)+"' | grep 'physical id' | head -1 | awk '{print substr($0,length,1)}'", shell=True))
 if testcore is not None:
@@ -304,8 +315,8 @@ indexfile.close()
 #print("Write to Read Ratio:",socketwritereadratio)
 #print("Wall Power Avg:",wallpoweravg,"Watts")
 
-server_address = ('', 80)   
-print("Serving results on port 80")
+server_address = ('', serverport)   
+print("Serving results on port",serverport)
 print("CTRL+c to kill server and exit")
 httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
 try:                                                                                                                                  
