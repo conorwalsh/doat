@@ -1,0 +1,3 @@
+  name: Python Style Checker
+  on: [push]
+  uses: andymckay/pycodestyle-action@0.1.3
