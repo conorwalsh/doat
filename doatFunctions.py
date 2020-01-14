@@ -4,7 +4,7 @@ import sys
 from tqdm import tqdm
 import time
 import signal
-
+import datetime
 
 # https://stackoverflow.com/questions/568271/how-to-check-if-there-exists-a-process-with-a-given-pid-in-python/6940314
 def check_pid(pid):
@@ -17,7 +17,8 @@ def check_pid(pid):
 
 
 def doat_motd():
-    print("         _____   ____       _______ \n        |  __ \ / __ \   /\|__   __|\n        | |  | | |  | | /  \  | |   \n        | |  | | |  | |/ /\ \ | |   \n        | |__| | |__| / ____ \| |   \n        |_____/ \____/_/    \_\_|   \n                                \n   DPDK Optimisation and Analysis Tool\n            Conor Walsh 2019\n")
+    now = datetime.datetime.now()
+    print("         _____   ____       _______ \n        |  __ \ / __ \   /\|__   __|\n        | |  | | |  | | /  \  | |   \n        | |  | | |  | |/ /\ \ | |   \n        | |__| | |__| / ____ \| |   \n        |_____/ \____/_/    \_\_|   \n                                \n   DPDK Optimisation and Analysis Tool\n            Conor Walsh "+str(now.year)+"\n")
 
 
 def sys_check():

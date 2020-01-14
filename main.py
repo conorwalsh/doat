@@ -26,7 +26,13 @@ else:
 
 testruntime = int(config['DOAT']['testruntime'])
 if testruntime is not None:
-    print("Startup time for DPDK App:", testruntime)
+    print("Run time for Test:", testruntime)
+else:
+    sys.exit("No test run time was specified (testruntime in config.cfg), ABORT!")
+
+teststepsize = float(config['DOAT']['teststepsize'])
+if teststepsize is not None:
+    print("Step size for Test:", teststepsize)
 else:
     sys.exit("No test run time was specified (testruntime in config.cfg), ABORT!")
 
@@ -43,11 +49,17 @@ else:
     sys.exit("No DPDK command was specified (dpdkcmd in config.cfg), ABORT!")
 
 telemetryenabled = False
-if config['APPPARAM']['telemetry'] is '1':
+if config['APPPARAM'].getboolean('telemetry') is True:
     telemetryenabled = True
     print("DPDK telemetry is enabled")
 else:
     print("DPDK telemetry is disabled")
+
+socketpath = config['APPPARAM']['socketpath']
+if socketpath is not None and telemetryenabled is True:
+    print("DPDK app telemetry socket path:", socketpath)
+elif telemetryenabled is True:
+    sys.exit("Telemetry is enabled but socketpath in config.cfg has not been set, ABORT!")
 
 testcore = int(config['CPU']['testcore'])
 
@@ -161,43 +173,70 @@ else:
 
 print('Starting Measurements . . .')
 
-pcm = subprocess.Popen(pcmdir+'pcm.x 0.25 -csv=tmp/pcm.csv',
+pcm = subprocess.Popen(pcmdir+'pcm.x '+str(teststepsize)+' -csv=tmp/pcm.csv',
                        stdout=subprocess.DEVNULL,
                        stderr=subprocess.STDOUT,
                        shell=True,
                        preexec_fn=os.setsid)
 
-wallp = subprocess.Popen("echo 'power,time\n' > tmp/wallpower.csv; while true; do ipmitool sdr | grep 'PS1 Input Power' | cut -c 20- | cut -f1 -d 'W' | tr -d '\n' | sed 's/.$//' >> tmp/wallpower.csv; echo -n ',' >> tmp/wallpower.csv; date +%s >> tmp/wallpower.csv; sleep 0.5; done",
+wallp = subprocess.Popen("echo 'power,time\n' > tmp/wallpower.csv; while true; do ipmitool sdr | grep 'PS1 Input Power' | cut -c 20- | cut -f1 -d 'W' | tr -d '\n' | sed 's/.$//' >> tmp/wallpower.csv; echo -n ',' >> tmp/wallpower.csv; date +%s >> tmp/wallpower.csv; sleep "+str(teststepsize)+"; done",
                          stdout=subprocess.DEVNULL,
                          stderr=subprocess.STDOUT,
                          shell=True,
                          preexec_fn=os.setsid)
 
+if telemetryenabled is True:
+    telem = subprocess.Popen('./tools/dpdk-telemetry-auto-csv.py '+socketpath+' tmp/telemetry.csv '+str(testruntime+2)+' '+str(teststepsize),
+                             stdout=subprocess.DEVNULL,
+                             stderr=subprocess.STDOUT,
+                             shell=True,
+                             preexec_fn=os.setsid)
+
 progress_bar(2)
 
 if wallp.poll() is not None:
-    kill_group_pid(wallp.pid)
+    kill_group_pid(pcm.pid)
+    kill_group_pid(proc.pid)
+    if telemetryenabled is True:
+        kill_group_pid(telem.pid)
     sys.exit("IPMItool died or failed to start, ABORT!")
 
 if pcm.poll() is not None:
-    kill_group_pid(pcm.pid)
+    kill_group_pid(wallp.pid)
+    kill_group_pid(proc.pid)
+    if telemetryenabled is True:
+        kill_group_pid(telem.pid)
     sys.exit("PCM died or failed to start, ABORT!")
+
+if telemetryenabled is True:
+    if telem.poll() is not None:
+        kill_group_pid(pcm.pid)
+        kill_group_pid(wallp.pid)
+        kill_group_pid(proc.pid)
+        sys.exit("Telemetry died or failed to start, ABORT!")
 
 print("Running Test . . .")
 progress_bar(testruntime)
 
+appdiedduringtest = False
 if proc.poll() is None:
     print("SUCCESS: Test process is still alive after test")
 else:
     print("ERROR: Test process died during test")
+    appdiedduringtest = True
 
-print("Killing test process")
+print("Killing test processes")
 
 kill_group_pid(testpid)
 
 kill_group_pid(pcm.pid)
 
 kill_group_pid(wallp.pid)
+
+kill_group_pid(telem.pid)
+
+if appdiedduringtest is True:
+    sys.exit("Test invalid due to DPDK App dying during test, ABORT!")
 
 f = open('tmp/pcm.csv', 'r')
 filedata = f.read()
@@ -264,7 +303,7 @@ socketx = []
 timex = 0
 for x in socketread:
     socketx.append(timex)
-    timex += 0.25
+    timex += teststepsize
 
 plt.figure(0)
 plt.plot(socketx, socketread, label="Read")
@@ -408,6 +447,82 @@ for i, x in enumerate(l2hitcoreavg):
                  str(x) +\
                  "%</p>"
 
+telemdata = pandas.read_csv('tmp/telemetry.csv', sep=',',)
+telempkts = np.asarray(telemdata["tx_good_packets"].tolist()).astype(np.int)
+telembytes = np.asarray(telemdata["tx_good_bytes"].tolist()).astype(np.int)
+telemerrors = np.asarray(telemdata["tx_errors"].tolist()).astype(np.int)
+telemdropped = np.asarray(telemdata["tx_dropped"].tolist()).astype(np.int)
+telemtime = np.asarray(telemdata["time"].tolist()).astype(np.float)
+telempktdist = telemdata.loc[:,["tx_size_64_packets",
+                                "tx_size_65_to_127_packets",
+                                "tx_size_128_to_255_packets",
+                                "tx_size_256_to_511_packets",
+                                "tx_size_512_to_1023_packets",
+                                "tx_size_1024_to_1522_packets",
+                                "tx_size_1523_to_max_packets"]].tail(1).values[0]
+telempktsizes = ["64",
+                 "65 to 127",
+                 "128 to 255",
+                 "256 to 511",
+                 "512 to 1024",
+                 "1024 to 1522",
+                 "1523 to max"]
+#print(telemdata)
+#print(telempktdist)
+#print(telempktsizes)
+
+plt.figure(6)
+x = np.arange(telempktdist.size)
+plt.bar(x, height=telempktdist)
+plt.xticks(x, telempktsizes, rotation=45)
+plt.xlabel("Packet Sizes (Bytes)")
+plt.ylabel("Packets")
+plt.title("Packet Size Distribution")
+plt.savefig("./tmp/pktdist.png", bbox_inches="tight")
+
+telembyteszero = telembytes[0]
+telembytesreset = []
+for y in telembytes:
+    telembytesreset.append(y-telembyteszero)
+
+plt.figure(7)
+#telemgbytes=telembytesreset.astype(np.float)/1000/1000/1000
+telemgbytes = [x / 1000000000 for x in telembytesreset]
+plt.plot(telemtime, telemgbytes, label="Data Transfered")
+plt.xlabel("Time (Seconds)")
+plt.ylabel("Data Transfered (GB)")
+plt.title("Data Transfered")
+plt.legend()
+plt.ylim(bottom=0)
+plt.ylim(top=(max(telemgbytes)+1))
+plt.savefig("./tmp/datatransfer.png", bbox_inches="tight")
+
+telempktszero = telempkts[0]
+telempktsreset = []
+for y in telempkts:
+        telempktsreset.append(y-telempktszero)
+
+plt.figure(8)
+plt.plot(telemtime, telempktsreset, label="Packets Transfered")
+plt.xlabel("Time (Seconds)")
+plt.ylabel("Packets Transfered (Packets)")
+plt.title("Packets Transfered")
+plt.legend()
+plt.ylim(bottom=0)
+plt.savefig("./tmp/pkttransfer.png", bbox_inches="tight")
+
+
+telemhtml = "<h2>Telemetry</h2><img src='./tmp/pktdist.png'/><br/><img src='./tmp/datatransfer.png'/><br/><img src='./tmp/pkttransfer.png'/>"
+
+
+'''
+wallpowertimezero = wallpowertime[0]
+wallpowerx = []
+for x in wallpowertime:
+        wallpowerx.append(x-wallpowertimezero)
+        wallpoweravg = round(sum(wallpower)/len(wallpower), 1)
+'''
+
 indexfile = open("index.html", "w")
 indexfile.write("<html><body><h1>DOAT Report</h1>" +
                 membwhtml +
@@ -416,6 +531,7 @@ indexfile.write("<html><body><h1>DOAT Report</h1>" +
                 l3hithtml +
                 l2misshtml +
                 l2hithtml +
+                telemhtml +
                 "</body></html>")
 indexfile.close()
 

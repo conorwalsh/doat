@@ -7,6 +7,8 @@
  This is a tool for automatically collecting statistics from the DPDK JSON
     API and collating these stats into a CSV file
 
+ Usage: ./dpdk-telemetry-auto-csv.py socket_path csv_path test_length step_size
+
  Copyright (c) 2020 Conor Walsh
  This tool is licensed under an MIT license (see included license file)
 
@@ -148,19 +150,19 @@ if __name__ == "__main__":
     sleep_time = DEFAULT_ST
     run_time = DEFAULT_RT
     file_path = DEFAULT_FP
-    if len(sys.argv) == 4:
+    csv_path = DEFAULT_CSV
+    if len(sys.argv) == 5:
         file_path = sys.argv[1]
-        run_time = float(sys.argv[2])
-        sleep_time = float(sys.argv[3])
+        csv_path = sys.argv[2]
+        run_time = float(sys.argv[3])
+        sleep_time = float(sys.argv[4])
     else:
         print("Warning the correct arguments were not passed running using defaults")
-        print("To set these values use the format ./script.py socket_path test_length step_size")
+        print("To set these values use the format ./script.py socket_path csv_path test_length step_size")
         print("Socket Path: " + file_path)
+        print("CSV Path: " + csv_path)
         print("Test length: " + str(run_time) + " seconds")
         print("Test step size: " + str(sleep_time) + " seconds")
-
-    # Set the path for the csv
-    csv_path = DEFAULT_CSV
 
     # Create directory if it doesnt exist
     if not os.path.exists("tmp"):
