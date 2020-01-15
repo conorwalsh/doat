@@ -206,7 +206,7 @@ if pcm.poll() is not None:
     kill_group_pid(proc.pid)
     if telemetryenabled is True:
         kill_group_pid(telem.pid)
-    sys.exit("PCM died or failed to start, ABORT!")
+    sys.exit("PCM died or failed to start, ABORT! (If problem persists, try to execute 'modprobe msr' as root user)")
 
 if telemetryenabled is True:
     if telem.poll() is not None:
@@ -249,6 +249,8 @@ f.write(newdata)
 f.close()
 
 pcmdata = pandas.read_csv('tmp/pcm.csv')
+
+pcmdatapoints = pcmdata.shape[0]*pcmdata.shape[1]
 
 socketread = np.asarray((pcmdata.iloc[:, pcmdata.columns.get_loc("Socket"+str(appsocket))+13].tolist())[1:]).astype(np.float) * 1000
 socketwrite = np.asarray((pcmdata.iloc[:, pcmdata.columns.get_loc("Socket"+str(appsocket))+14].tolist())[1:]).astype(np.float) * 1000
@@ -313,7 +315,9 @@ plt.ylabel("Bandwidth (MBps)")
 plt.title("Memory Bandwidth")
 plt.legend()
 plt.ylim(bottom=0)
+plt.xlim(left=0)
 plt.ylim(top=(max(socketwrite)+100))
+plt.xlim(right=max(socketx))
 plt.savefig("./tmp/membw.png", bbox_inches="tight")
 
 membwhtml = "<h2>Memory Bandwidth</h2><img src='./tmp/membw.png'/><p>Read Avg: " +\
@@ -325,6 +329,7 @@ membwhtml = "<h2>Memory Bandwidth</h2><img src='./tmp/membw.png'/><p>Read Avg: "
             "</p><p><a href='./tmp/pcm.csv'>Download Full PCM CSV</a>"
 
 wallpdata = pandas.read_csv('tmp/wallpower.csv', sep=',',)
+wallpdatapoints = wallpdata.shape[0]*wallpdata.shape[1]
 wallpower = np.asarray(wallpdata["power"].tolist()).astype(np.int)
 wallpowertime = np.asarray(wallpdata["time"].tolist()).astype(np.int)
 wallpowertimezero = wallpowertime[0]
@@ -345,6 +350,8 @@ plt.title("Wall Power")
 plt.legend()
 plt.ylim(bottom=0)
 plt.ylim(top=(max(wallpower)+50))
+plt.xlim(left=0)
+plt.xlim(right=max(wallpowerx))
 plt.savefig("./tmp/wallpower.png", bbox_inches="tight")
 
 plt.figure(2)
@@ -357,6 +364,8 @@ plt.ylabel("L3 Miss Count")
 plt.title("L3 Cache Misses")
 plt.legend()
 plt.ylim(bottom=0)
+plt.xlim(left=0)
+plt.xlim(right=max(socketx))
 plt.savefig("./tmp/l3miss.png", bbox_inches="tight")
 l3misshtml = "<h2>L3 Cache</h2><img src='./tmp/l3miss.png'/>"
 if appmasterenabled is True:
@@ -382,6 +391,8 @@ plt.ylabel("L2 Miss Count")
 plt.title("L2 Cache Misses")
 plt.legend()
 plt.ylim(bottom=0)
+plt.xlim(left=0)
+plt.xlim(right=max(socketx))
 plt.savefig("./tmp/l2miss.png", bbox_inches="tight")
 l2misshtml = "<h2>L2 Cache</h2><img src='./tmp/l2miss.png'/>"
 if appmasterenabled is True:
@@ -407,6 +418,8 @@ plt.ylabel("L3 Hit (%)")
 plt.title("L3 Cache Hits")
 plt.legend()
 plt.ylim(bottom=0)
+plt.xlim(left=0)
+plt.xlim(right=max(socketx))
 plt.savefig("./tmp/l3hit.png", bbox_inches="tight")
 l3hithtml = "<img src='./tmp/l3hit.png'/>"
 if appmasterenabled is True:
@@ -432,6 +445,8 @@ plt.ylabel("L2 Hit (%)")
 plt.title("L2 Cache Hits")
 plt.legend()
 plt.ylim(bottom=0)
+plt.xlim(left=0)
+plt.xlim(right=max(socketx))
 plt.savefig("./tmp/l2hit.png", bbox_inches="tight")
 l2hithtml = "<img src='./tmp/l2hit.png'/>"
 if appmasterenabled is True:
@@ -448,6 +463,7 @@ for i, x in enumerate(l2hitcoreavg):
                  "%</p>"
 
 telemdata = pandas.read_csv('tmp/telemetry.csv', sep=',',)
+telemdatapoints = telemdata.shape[0]*telemdata.shape[1]
 telempkts = np.asarray(telemdata["tx_good_packets"].tolist()).astype(np.int)
 telembytes = np.asarray(telemdata["tx_good_bytes"].tolist()).astype(np.int)
 telemerrors = np.asarray(telemdata["tx_errors"].tolist()).astype(np.int)
@@ -467,9 +483,28 @@ telempktsizes = ["64",
                  "512 to 1024",
                  "1024 to 1522",
                  "1523 to max"]
-#print(telemdata)
-#print(telempktdist)
-#print(telempktsizes)
+telemrxerrors = telemdata.loc[:,"rx_errors"].tail(1).values[0]
+telemrxerrorsbool = False
+telemtxerrors = telemdata.loc[:,"tx_errors"].tail(1).values[0]
+telemtxerrorsbool = False
+telemrxdropped = telemdata.loc[:,"rx_dropped"].tail(1).values[0]
+telemrxdroppedbool = False
+telemtxdropped = telemdata.loc[:,"tx_dropped"].tail(1).values[0]
+telemtxdroppedbool = False
+
+if int(telemrxerrors) is not 0:
+    print("ERROR: RX errors occured during this test (rx_errors: "+str(telemrxerrors)+")")
+    telemrxerrorsbool = True
+if int(telemtxerrors) is not 0:
+    print("ERROR: TX errors occured during this test (tx_errors: "+str(telemtxerrors)+")")
+    telemtxerrorsbool = True
+
+if int(telemrxdropped) is not 0:
+    print("ERROR: RX Packets were dropped during this test (rx_dropped: "+str(telemrxdropped)+")")
+    telemrxdroppedbool = True
+if int(telemtxdropped) is not 0:
+    print("ERROR: TX Packets were dropped during this test (tx_dropped: "+str(telemtxdropped)+")")
+    telemtxdroppedbool = True
 
 plt.figure(6)
 x = np.arange(telempktdist.size)
@@ -485,43 +520,107 @@ telembytesreset = []
 for y in telembytes:
     telembytesreset.append(y-telembyteszero)
 
-plt.figure(7)
-#telemgbytes=telembytesreset.astype(np.float)/1000/1000/1000
 telemgbytes = [x / 1000000000 for x in telembytesreset]
-plt.plot(telemtime, telemgbytes, label="Data Transfered")
-plt.xlabel("Time (Seconds)")
-plt.ylabel("Data Transfered (GB)")
-plt.title("Data Transfered")
-plt.legend()
-plt.ylim(bottom=0)
-plt.ylim(top=(max(telemgbytes)+1))
-plt.savefig("./tmp/datatransfer.png", bbox_inches="tight")
+
+telemgbytesmax = np.round(max(telemgbytes),1)
 
 telempktszero = telempkts[0]
 telempktsreset = []
 for y in telempkts:
         telempktsreset.append(y-telempktszero)
 
+telempktsresetmax = max(telempktsreset)
+
+plt.figure(7)
+fig, ax1 = plt.subplots()
+ax2 = ax1.twinx()
+ax1.plot(telemtime, telemgbytes, alpha=1, label="Data Transfered")
+ax2.plot(telemtime, telempktsreset, alpha=0.6, color='orange', label="Packets Transfered")
+ax1.set_xlabel('Time (Seconds)')
+ax1.set_ylabel('Data Transfered (GB)')
+ax2.set_ylabel('Packets Transfered (Packets)')
+ax1.set_ylim(bottom=0)
+ax2.set_ylim(bottom=0)
+ax1.legend(loc=0)
+ax2.legend(loc=1)
+plt.title("Data/Packets Transfered")
+plt.xlim(left=0)
+plt.xlim(right=max(telemtime))
+plt.savefig("./tmp/transfer.png", bbox_inches="tight")
+
+telempktssec = []
+for i, y in enumerate(telempktsreset):
+    if i is not 0 and i is not 1:
+        telempktssec.append((y-telempktsreset[i-1])/teststepsize)
+    elif i is 1:
+        val = (y-telempktsreset[i-1])/teststepsize
+        telempktssec.append(val)
+        telempktssec[0] = val
+    else:
+        telempktssec.append(0)
+
+telempktsecavg = np.round(np.mean(telempktssec),0)
+
+telemthroughput = []
+for i, y in enumerate(telembytesreset):
+    if i is not 0 and i is not 1:
+        telemthroughput.append((y-telembytesreset[i-1])/1000000000*8/teststepsize)
+    elif i is 1:
+        val = ((y-telembytesreset[i-1])/1000000000*8/teststepsize)
+        telemthroughput.append(val)
+        telemthroughput[0] = val
+    else:
+        telemthroughput.append(0)
+
+telemthroughputavg = np.round(np.mean(telemthroughput),2)
+
 plt.figure(8)
-plt.plot(telemtime, telempktsreset, label="Packets Transfered")
-plt.xlabel("Time (Seconds)")
-plt.ylabel("Packets Transfered (Packets)")
-plt.title("Packets Transfered")
-plt.legend()
-plt.ylim(bottom=0)
-plt.savefig("./tmp/pkttransfer.png", bbox_inches="tight")
+fig, ax1 = plt.subplots()
+ax2 = ax1.twinx()
+ax1.plot(telemtime, telemthroughput, alpha=1, label="Throughput")
+ax2.plot(telemtime, telempktssec, alpha=0.6, color='orange', label="Packets Per Second")
+ax1.set_xlabel('Time (Seconds)')
+ax1.set_ylabel('Throughput (Gbps)')
+ax2.set_ylabel('Packets Per Second (Packets)')
+ax1.set_ylim(bottom=0)
+ax2.set_ylim(bottom=0)
+ax2.set_ylim(top=max(telempktssec)+1000000)
+ax1.set_ylim(top=max(telemthroughput)+1)
+ax1.legend(loc=0)
+ax2.legend(loc=0)
+plt.title("Transfer Speeds")
+plt.xlim(left=0)
+plt.xlim(right=max(telemtime))
+plt.savefig("./tmp/speeds.png", bbox_inches="tight")
 
 
-telemhtml = "<h2>Telemetry</h2><img src='./tmp/pktdist.png'/><br/><img src='./tmp/datatransfer.png'/><br/><img src='./tmp/pkttransfer.png'/>"
+telemhtml = "<h2>Telemetry</h2><img src='./tmp/pktdist.png'/><br/><img src='./tmp/transfer.png'/><p>Total Data Transfered: "+str(telemgbytesmax)+"GB</p><p>Total Packets Transfered: "+str(telempktsresetmax)+" packets</p><img src='./tmp/speeds.png'/><p>Average Throughput: "+str(telemthroughputavg)+" Gbps</p><p>Average Packets Per Second: "+str(telempktsecavg)+" pps</p>"
 
 
-'''
-wallpowertimezero = wallpowertime[0]
-wallpowerx = []
-for x in wallpowertime:
-        wallpowerx.append(x-wallpowertimezero)
-        wallpoweravg = round(sum(wallpower)/len(wallpower), 1)
-'''
+
+if telemrxerrorsbool is False:
+    telemhtml+="<h3 style='color:green;font-weight:bold;'>RX Errors: "+str(telemrxerrors)+"</h3>"
+else:
+    telemhtml+="<h3 style='color:red;font-weight:bold;'>RX Errors: "+str(telemrxerrors)+"</h3>"
+if telemtxerrorsbool is False:
+    telemhtml+="<h3 style='color:green;font-weight:bold;'>TX Errors: "+str(telemtxerrors)+"</h3>"
+else:
+    telemhtml+="<h3 style='color:red;font-weight:bold;'>TX Errors: "+str(telemtxerrors)+"</h3>"
+
+if telemrxdroppedbool is False:
+    telemhtml+="<h3 style='color:green;font-weight:bold;'>RX Dropped Packets: "+str(telemrxdropped)+"</h3>"
+else:
+    telemhtml+="<h3 style='color:red;font-weight:bold;'>RX Dropped Packets: "+str(telemrxdropped)+"</h3>"
+if telemtxdroppedbool is False:
+    telemhtml+="<h3 style='color:green;font-weight:bold;'>TX Dropped Packets: "+str(telemtxdropped)+"</h3>"
+else:
+    telemhtml+="<h3 style='color:red;font-weight:bold;'>TX Dropped Packets: "+str(telemtxdropped)+"</h3>"
+
+telemhtml+="<p><a href='./tmp/telemetry.csv'>Download Full Telemetry CSV</a></p>"
+
+datapoints = pcmdatapoints+wallpdatapoints+telemdatapoints
+
+telemhtml+="<h2>Data Points</h2><p>This report was compiled using "+str(datapoints)+" data points</p>"
 
 indexfile = open("index.html", "w")
 indexfile.write("<html><body><h1>DOAT Report</h1>" +
