@@ -8,6 +8,8 @@ import numpy as np
 import atexit
 import matplotlib.pyplot as plt
 from http.server import SimpleHTTPRequestHandler, HTTPServer
+from time import gmtime, strftime
+import pdfkit
 
 # Print startup message
 doat_motd()
@@ -238,6 +240,8 @@ kill_group_pid(telem.pid)
 if appdiedduringtest is True:
     sys.exit("Test invalid due to DPDK App dying during test, ABORT!")
 
+print("Generating report")
+
 f = open('tmp/pcm.csv', 'r')
 filedata = f.read()
 f.close()
@@ -326,7 +330,7 @@ membwhtml = "<h2>Memory Bandwidth</h2><img src='./tmp/membw.png'/><p>Read Avg: "
             str(socketwriteavg) +\
             "MBps</p><p>Write to Read Ratio: " +\
             str(socketwritereadratio) +\
-            "</p><p><a href='./tmp/pcm.csv'>Download Full PCM CSV</a>"
+            "</p><p><a href='./tmp/pcm.csv' class='btn btn-info' role='button'>Download Full PCM CSV</a>"
 
 wallpdata = pandas.read_csv('tmp/wallpower.csv', sep=',',)
 wallpdatapoints = wallpdata.shape[0]*wallpdata.shape[1]
@@ -340,7 +344,7 @@ wallpoweravg = round(sum(wallpower)/len(wallpower), 1)
 
 wallpowerhtml = "<h2>Wall Power</h2><img src='./tmp/wallpower.png'/><p>Wall Power Avg: " +\
                 str(wallpoweravg) +\
-                "Watts</p><p><a href='./tmp/wallpower.csv'>Download Power CSV</a>"
+                "Watts</p><p><a href='./tmp/wallpower.csv' class='btn btn-info' role='button'>Download Power CSV</a>"
 
 plt.figure(1)
 plt.plot(wallpowerx, wallpower, label="Wall Power")
@@ -596,7 +600,7 @@ plt.savefig("./tmp/speeds.png", bbox_inches="tight")
 
 telemhtml = "<h2>Telemetry</h2><img src='./tmp/pktdist.png'/><br/><img src='./tmp/transfer.png'/><p>Total Data Transfered: "+str(telemgbytesmax)+"GB</p><p>Total Packets Transfered: "+str(telempktsresetmax)+" packets</p><img src='./tmp/speeds.png'/><p>Average Throughput: "+str(telemthroughputavg)+" Gbps</p><p>Average Packets Per Second: "+str(telempktsecavg)+" pps</p>"
 
-
+telemhtml+="<p><a href='./tmp/telemetry.csv' class='btn btn-info' role='button'>Download Full Telemetry CSV</a></p><h2>Errors</h2>"
 
 if telemrxerrorsbool is False:
     telemhtml+="<h3 style='color:green;font-weight:bold;'>RX Errors: "+str(telemrxerrors)+"</h3>"
@@ -616,23 +620,44 @@ if telemtxdroppedbool is False:
 else:
     telemhtml+="<h3 style='color:red;font-weight:bold;'>TX Dropped Packets: "+str(telemtxdropped)+"</h3>"
 
-telemhtml+="<p><a href='./tmp/telemetry.csv'>Download Full Telemetry CSV</a></p>"
+#telemhtml+="<p><a href='./tmp/telemetry.csv' class='btn btn-info' role='button'>Download Full Telemetry CSV</a></p>"
+
+reporthtml="<p style='text-align:center'><a href='./tmp/doatreport.pdf' class='btn btn-success' role='button' style='font-size: 28px;'>Download PDF Report</a></p>"
 
 datapoints = pcmdatapoints+wallpdatapoints+telemdatapoints
 
-telemhtml+="<h2>Data Points</h2><p>This report was compiled using "+str(datapoints)+" data points</p>"
+#telemhtml+="<h2>Data Points</h2><p>This report was compiled using "+str(datapoints)+" data points</p>"
+
+reporttime1 = strftime("%I:%M%p on %d %B %Y", gmtime())
+reporttime2 = strftime("%I:%M%p %d/%m/%Y", gmtime())
 
 indexfile = open("index.html", "w")
-indexfile.write("<html><body><h1>DOAT Report</h1>" +
-                membwhtml +
-                wallpowerhtml +
-                l3misshtml +
-                l3hithtml +
-                l2misshtml +
-                l2hithtml +
-                telemhtml +
-                "</body></html>")
+indexfile.write("<html><head><title>DOAT Report</title><link rel='stylesheet' href='./webcomponents/bootstrap.341.min.css'><script src='./webcomponents/jquery.341.min.js'></script><script src='./webcomponents/bootstrap.341.min.js'></script><style>@media print{a{display:none!important}}</style></head><body><div class='jumbotron text-center'><h1>DOAT Report</h1><p style='font-size: 14px'>DPDK Optimisation & Analysis Tool</p><p>Report compiled at "+reporttime1+" using "+str(format(datapoints,","))+" data points</p></div><div class='container'>" +
+                "<div class='row' style='page-break-after: always;'>" + membwhtml + "</div>" +
+                "<div class='row' style='page-break-after: always;'>" + wallpowerhtml + "</div>" +
+                "<div class='row' style='page-break-after: always;'>" + l3misshtml + "</div>" +
+                "<div class='row' style='page-break-after: always;'>" + l3hithtml + "</div>" +
+                "<div class='row' style='page-break-after: always;'>" + l2misshtml + "</div>" +
+                "<div class='row' style='page-break-after: always;'>" + l2hithtml + "</div>" +
+                "<div class='row'>" + telemhtml + "</div>" +
+                "<div class='row'>" + reporthtml + "</div>" +
+                "</div></body></html>")
 indexfile.close()
+
+pdfoptions = {'page-size': 'A4',
+           'quiet': '',
+           'margin-top': '25.4',
+           'margin-right': '25.4',
+           'margin-bottom': '25.4',
+           'margin-left': '25.4',
+           'encoding': "UTF-8",
+           'footer-right': 'Page [page] of [topage]',
+           'footer-left': reporttime2,
+           'footer-line': '',
+           'print-media-type': ''
+           }
+pdfconfig = pdfkit.configuration(wkhtmltopdf='/usr/local/bin/wkhtmltopdf')
+pdfkit.from_file('index.html', './tmp/doatreport.pdf', configuration=pdfconfig, options=pdfoptions)
 
 # print("Read Avg:",socketreadavg,"MBps")
 # print("Write Avg:",socketwriteavg,"MBps")
