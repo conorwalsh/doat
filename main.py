@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from time import gmtime, strftime
 import pdfkit
+from json2html import *
 
 # Print startup message
 doat_motd()
@@ -43,6 +44,35 @@ if serverport is not None:
     print("Results server port:", serverport)
 else:
     sys.exit("No server port was specified (serverport in config.cfg), ABORT!")
+
+projectname = config['REPORTING']['projectname']
+if projectname is not None and projectname is not "":
+    print("Project Name:", projectname)
+else:
+    print("No project name was specified (projectname in config.cfg), continuing without")
+
+testername = config['REPORTING']['testername']
+testeremail = config['REPORTING']['testeremail']
+if testername is not None and testeremail is not None and testername is not "" and testeremail is not "":
+    print("Tester:",testername,'-',testeremail)
+else:
+    testername = None
+    testeremail = None
+    print("Tester name and/or email was not specified (testername & testeremail in config.cfg), continuing without")
+
+generatepdf = False
+if config['REPORTING'].getboolean('generatepdf') is True:
+    generatepdf = True
+    print("PDF report geneneration is enabled")
+else:
+    print("PDF report geneneration is disabled")
+
+generatezip = False
+if config['REPORTING'].getboolean('generatezip') is True:
+    generatezip = True
+    print("ZIP Archive geneneration is enabled")
+else:
+    print("ZIP Archive geneneration is disabled")
 
 dpdkcmd = config['APPPARAM']['dpdkcmd']
 if dpdkcmd is not None:
@@ -252,7 +282,7 @@ f = open('tmp/pcm.csv', 'w')
 f.write(newdata)
 f.close()
 
-pcmdata = pandas.read_csv('tmp/pcm.csv')
+pcmdata = pandas.read_csv('tmp/pcm.csv', low_memory=False)
 
 pcmdatapoints = pcmdata.shape[0]*pcmdata.shape[1]
 
@@ -332,7 +362,7 @@ membwhtml = "<h2>Memory Bandwidth</h2><img src='./tmp/membw.png'/><p>Read Avg: "
             str(socketwritereadratio) +\
             "</p><p><a href='./tmp/pcm.csv' class='btn btn-info' role='button'>Download Full PCM CSV</a>"
 
-wallpdata = pandas.read_csv('tmp/wallpower.csv', sep=',',)
+wallpdata = pandas.read_csv('tmp/wallpower.csv', sep=',', low_memory=False)
 wallpdatapoints = wallpdata.shape[0]*wallpdata.shape[1]
 wallpower = np.asarray(wallpdata["power"].tolist()).astype(np.int)
 wallpowertime = np.asarray(wallpdata["time"].tolist()).astype(np.int)
@@ -362,7 +392,7 @@ plt.figure(2)
 for i, y in enumerate(l3misscore):
     plt.plot(socketx, y, label="Core " + str(appcores[i]))
 if appmasterenabled is True:
-    plt.plot(socketx, l3missmaster, label="Master Core ("+str(appmaster)+")")
+    plt.plot(socketx, l3missmaster, alpha=0.5, label="Master Core ("+str(appmaster)+")")
 plt.xlabel("Time (Seconds)")
 plt.ylabel("L3 Miss Count")
 plt.title("L3 Cache Misses")
@@ -389,7 +419,7 @@ plt.figure(3)
 for i, y in enumerate(l2misscore):
     plt.plot(socketx, y, label="Core "+str(appcores[i]))
 if appmasterenabled is True:
-    plt.plot(socketx, l2missmaster, label="Master Core ("+str(appmaster)+")")
+    plt.plot(socketx, l2missmaster, alpha=0.5, label="Master Core ("+str(appmaster)+")")
 plt.xlabel("Time (Seconds)")
 plt.ylabel("L2 Miss Count")
 plt.title("L2 Cache Misses")
@@ -416,7 +446,7 @@ plt.figure(4)
 for i, y in enumerate(l3hitcore):
     plt.plot(socketx, y, label="Core " + str(appcores[i]))
 if appmasterenabled is True:
-    plt.plot(socketx, l3hitmaster, label="Master Core ("+str(appmaster)+")")
+    plt.plot(socketx, l3hitmaster, alpha=0.5, label="Master Core ("+str(appmaster)+")")
 plt.xlabel("Time (Seconds)")
 plt.ylabel("L3 Hit (%)")
 plt.title("L3 Cache Hits")
@@ -443,7 +473,7 @@ plt.figure(5)
 for i, y in enumerate(l2hitcore):
     plt.plot(socketx, y, label="Core "+str(appcores[i]))
 if appmasterenabled is True:
-    plt.plot(socketx, l2hitmaster, label="Master Core ("+str(appmaster)+")")
+    plt.plot(socketx, l2hitmaster, alpha=0.5, label="Master Core ("+str(appmaster)+")")
 plt.xlabel("Time (Seconds)")
 plt.ylabel("L2 Hit (%)")
 plt.title("L2 Cache Hits")
@@ -466,7 +496,7 @@ for i, x in enumerate(l2hitcoreavg):
                  str(x) +\
                  "%</p>"
 
-telemdata = pandas.read_csv('tmp/telemetry.csv', sep=',',)
+telemdata = pandas.read_csv('tmp/telemetry.csv', sep=',', low_memory=False)
 telemdatapoints = telemdata.shape[0]*telemdata.shape[1]
 telempkts = np.asarray(telemdata["tx_good_packets"].tolist()).astype(np.int)
 telembytes = np.asarray(telemdata["tx_good_bytes"].tolist()).astype(np.int)
@@ -545,7 +575,7 @@ ax1.set_ylabel('Data Transfered (GB)')
 ax2.set_ylabel('Packets Transfered (Packets)')
 ax1.set_ylim(bottom=0)
 ax2.set_ylim(bottom=0)
-ax1.legend(loc=0)
+ax1.legend(loc=2)
 ax2.legend(loc=1)
 plt.title("Data/Packets Transfered")
 plt.xlim(left=0)
@@ -590,15 +620,15 @@ ax1.set_ylim(bottom=0)
 ax2.set_ylim(bottom=0)
 ax2.set_ylim(top=max(telempktssec)+1000000)
 ax1.set_ylim(top=max(telemthroughput)+1)
-ax1.legend(loc=0)
-ax2.legend(loc=0)
+ax1.legend(loc=2)
+ax2.legend(loc=1)
 plt.title("Transfer Speeds")
 plt.xlim(left=0)
 plt.xlim(right=max(telemtime))
 plt.savefig("./tmp/speeds.png", bbox_inches="tight")
 
 
-telemhtml = "<h2>Telemetry</h2><img src='./tmp/pktdist.png'/><br/><img src='./tmp/transfer.png'/><p>Total Data Transfered: "+str(telemgbytesmax)+"GB</p><p>Total Packets Transfered: "+str(telempktsresetmax)+" packets</p><img src='./tmp/speeds.png'/><p>Average Throughput: "+str(telemthroughputavg)+" Gbps</p><p>Average Packets Per Second: "+str(telempktsecavg)+" pps</p>"
+telemhtml = "<h2>Telemetry</h2><img src='./tmp/pktdist.png'/><br/><img src='./tmp/transfer.png'/><p>Total Data Transfered: "+str(telemgbytesmax)+"GB</p><p>Total Packets Transfered: "+str(format(telempktsresetmax,","))+" packets</p><img src='./tmp/speeds.png'/><p>Average Throughput: "+str(telemthroughputavg)+" Gbps</p><p>Average Packets Per Second: "+str(format(telempktsecavg,","))+" pps</p>"
 
 telemhtml+="<p><a href='./tmp/telemetry.csv' class='btn btn-info' role='button'>Download Full Telemetry CSV</a></p><h2>Errors</h2>"
 
@@ -622,8 +652,11 @@ else:
 
 #telemhtml+="<p><a href='./tmp/telemetry.csv' class='btn btn-info' role='button'>Download Full Telemetry CSV</a></p>"
 
-reporthtml="<p style='text-align:center'><a href='./tmp/doatreport.pdf' class='btn btn-success' role='button' style='font-size: 28px;'>Download PDF Report</a></p>"
-
+reporthtml=""
+if generatepdf is True:
+    reporthtml+="<p style='text-align:center'><a href='./tmp/doatreport.pdf' class='btn btn-success' role='button' style='font-size: 28px;'>Download PDF Report</a></p>"
+if generatezip is True:
+    reporthtml+="<p style='text-align:center'><a href='./tmp/doat_results.zip' class='btn btn-success' role='button' style='font-size: 28px;'>Download Results Zip</a></p>"
 datapoints = pcmdatapoints+wallpdatapoints+telemdatapoints
 
 #telemhtml+="<h2>Data Points</h2><p>This report was compiled using "+str(datapoints)+" data points</p>"
@@ -631,8 +664,16 @@ datapoints = pcmdatapoints+wallpdatapoints+telemdatapoints
 reporttime1 = strftime("%I:%M%p on %d %B %Y", gmtime())
 reporttime2 = strftime("%I:%M%p %d/%m/%Y", gmtime())
 
+projectdetailshtml = ""
+if projectname is not None and projectname is not "":
+    projectdetailshtml += "<p style='font-size: 18px;'>Project: " + projectname + "</p>"
+if testername is not None and testeremail is not None and testername is not "" and testeremail is not "":
+    projectdetailshtml += "<p style='font-size: 18px;'>Tester: " + testername + " ("+testeremail+")</p>"
+
 indexfile = open("index.html", "w")
-indexfile.write("<html><head><title>DOAT Report</title><link rel='stylesheet' href='./webcomponents/bootstrap.341.min.css'><script src='./webcomponents/jquery.341.min.js'></script><script src='./webcomponents/bootstrap.341.min.js'></script><style>@media print{a{display:none!important}}</style></head><body><div class='jumbotron text-center'><h1>DOAT Report</h1><p style='font-size: 14px'>DPDK Optimisation & Analysis Tool</p><p>Report compiled at "+reporttime1+" using "+str(format(datapoints,","))+" data points</p></div><div class='container'>" +
+indexfile.write("<html><head><title>DOAT Report</title><link rel='stylesheet' href='./webcomponents/bootstrap.341.min.css'><script src='./webcomponents/jquery.341.min.js'></script><script src='./webcomponents/bootstrap.341.min.js'></script><style>@media print{a{display:none!important}}</style></head><body><div class='jumbotron text-center'><h1>DOAT Report</h1><p style='font-size: 14px'>DPDK Optimisation & Analysis Tool</p><p>Report compiled at "+reporttime1+" using "+str(format(datapoints,","))+" data points</p>" + 
+                projectdetailshtml +
+                "</div><div class='container'>" +
                 "<div class='row' style='page-break-after: always;'>" + membwhtml + "</div>" +
                 "<div class='row' style='page-break-after: always;'>" + wallpowerhtml + "</div>" +
                 "<div class='row' style='page-break-after: always;'>" + l3misshtml + "</div>" +
@@ -640,24 +681,32 @@ indexfile.write("<html><head><title>DOAT Report</title><link rel='stylesheet' hr
                 "<div class='row' style='page-break-after: always;'>" + l2misshtml + "</div>" +
                 "<div class='row' style='page-break-after: always;'>" + l2hithtml + "</div>" +
                 "<div class='row'>" + telemhtml + "</div>" +
-                "<div class='row'>" + reporthtml + "</div>" +
+                "<div class='row'><h2>Test Configuration</h2>"+((json2html.convert(json = (str({section: dict(config[section]) for section in config.sections()})).replace("\'", "\""))).replace("border=\"1\"", "")).replace("table", "table class=\"table\"", 1) + "</div>" +
+                "<div class='row' style='page-break-after: always;'>" + reporthtml + "</div>" +
                 "</div></body></html>")
 indexfile.close()
 
-pdfoptions = {'page-size': 'A4',
-           'quiet': '',
-           'margin-top': '25.4',
-           'margin-right': '25.4',
-           'margin-bottom': '25.4',
-           'margin-left': '25.4',
-           'encoding': "UTF-8",
-           'footer-right': 'Page [page] of [topage]',
-           'footer-left': reporttime2,
-           'footer-line': '',
-           'print-media-type': ''
-           }
-pdfconfig = pdfkit.configuration(wkhtmltopdf='/usr/local/bin/wkhtmltopdf')
-pdfkit.from_file('index.html', './tmp/doatreport.pdf', configuration=pdfconfig, options=pdfoptions)
+if generatepdf is True:
+    pdfoptions = {'page-size': 'A4',
+                  'quiet': '',
+                  'margin-top': '25.4',
+                  'margin-right': '25.4',
+                  'margin-bottom': '25.4',
+                  'margin-left': '25.4',
+                  'encoding': "UTF-8",
+                  'footer-right': 'Page [page] of [topage]',
+                  'footer-left': reporttime2,
+                  'footer-line': '',
+                  'print-media-type': ''
+                 }
+    pdfconfig = pdfkit.configuration(wkhtmltopdf='/usr/local/bin/wkhtmltopdf')
+    pdfkit.from_file('index.html', './tmp/doatreport.pdf', configuration=pdfconfig, options=pdfoptions)
+
+if generatezip is True:
+    subprocess.call("cp -r tmp archive; cp config.cfg ./archive; cd archive; mkdir raw_data; mkdir figures; mv *.png ./figures; mv *.csv ./raw_data;  zip -r ../doat_results.zip *; cd ..; mv doat_results.zip ./tmp/; rm -rf archive;",
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.STDOUT,
+                    shell=True)
 
 # print("Read Avg:",socketreadavg,"MBps")
 # print("Write Avg:",socketwriteavg,"MBps")
