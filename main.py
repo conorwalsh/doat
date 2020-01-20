@@ -12,6 +12,9 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from time import gmtime, strftime
 import pdfkit
 from json2html import *
+import re
+import string
+import fileinput
 
 # Print startup message
 doat_motd()
@@ -134,8 +137,18 @@ elif openabled is True:
 
 memop = False
 if config['OPTIMISATION'].getboolean('memop') is True and openabled is True:
-    memop = True
-    print("Memory Optimisation Step is enabled")
+    stacklibcompiled = subprocess.check_output("cat $RTE_SDK/config/common_base | grep -m1 CONFIG_RTE_LIBRTE_STACK=", shell=True).decode(sys.stdout.encoding).rstrip().strip()[-1:]
+    stackdrivercomplied = subprocess.check_output("cat $RTE_SDK/config/common_base | grep -m1 CONFIG_RTE_DRIVER_MEMPOOL_STACK=", shell=True).decode(sys.stdout.encoding).rstrip().strip()[-1:]
+    memdriver = subprocess.check_output("cat $RTE_SDK/config/common_base | grep -m1 CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS=", shell=True).decode(sys.stdout.encoding).rstrip().strip()
+    if stacklibcompiled is "y" and stackdrivercomplied is "y" and "ring_mp_mc" in memdriver:
+        memop = True
+        print("Memory Optimisation Step is enabled (LIBRTE_STACK and RTE_DRIVER_MEMPOOL_STACK are compiled")
+    elif stacklibcompiled is "n":
+        print("Memory Optimisation Step is disabled (LIBRTE_STACK is not compiled, set CONFIG_RTE_LIBRTE_STACK=y)")
+    elif stackdrivercomplied is "n":
+        print("Memory Optimisation Step is disabled (RTE_DRIVER_MEMPOOL_STACK is not compiled, set CONFIG_RTE_DRIVER_MEMPOOL_STACK=y)")
+    elif "ring_mp_mc" not in memdriver:
+         print("Memory Optimisation Step is disabled (CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS is not set to ring, set CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS=\"ring_mp_mc\")")
 elif openabled is True:
     print("Memory Optimisation Step is disabled")
 
@@ -212,7 +225,12 @@ print("Test pinned to core",
       "PID:",
       os.getpid())
 
-print("Starting Process")
+if openabled:
+    print("\nStarting Analysis of Original unmodified DPDK App")
+else:
+    print("\nStarting Analysis of DPDK App")
+
+print("Starting DPDK App")
 proc = subprocess.Popen(applocation+appcmd,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.STDOUT,
@@ -236,17 +254,17 @@ def safeexit():
 atexit.register(safeexit)
 
 if check_pid(testpid):
-    print("Test process starting")
+    print("DPDK App started successfully")
 else:
-    sys.exit("Test process failed to start, ABORT!")
+    sys.exit("DPDK App failed to start, ABORT!")
 
-print("Allow application to startup . . .")
+print("Allow application to startup and settle . . .")
 progress_bar(startuptime)
 
 if proc.poll() is not None:
-    sys.exit("Application died or failed to start, ABORT!")
+    sys.exit("DPDK App died or failed to start, ABORT!")
 else:
-    print("Test process started successfully, , PID: ",
+    print("DPDK App ready for tests, PID: ",
           testpid)
 
 print('Starting Measurements . . .')
@@ -317,7 +335,7 @@ if telemetryenabled is True:
 if appdiedduringtest is True:
     sys.exit("Test invalid due to DPDK App dying during test, ABORT!")
 
-print("Generating report")
+#print("Generating report")
 
 f = open('tmp/pcm.csv', 'r')
 filedata = f.read()
@@ -706,6 +724,47 @@ if generatepdf is True:
     reporthtml+="<p style='text-align:center'><a href='./tmp/doatreport.pdf' class='btn btn-success' role='button' style='font-size: 28px;'>Download PDF Report</a></p>"
 if generatezip is True:
     reporthtml+="<p style='text-align:center'><a href='./tmp/doat_results.zip' class='btn btn-success' role='button' style='font-size: 28px;'>Download Results Zip</a></p>"
+
+ophtml = ""
+opdatapoints = 0
+stepsenabled = False
+if memop is True:
+    stepsenabled = True
+
+if openabled is True and stepsenabled is True:
+    print("\nModifying DPDK Configuration")
+    for  line in fileinput.FileInput(rtesdk+"/config/common_base", inplace=1): 
+        if "CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS" in line and memop is True:
+            sys.stdout.write('CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS="stack"\n')
+        else:
+            sys.stdout.write(line)
+    
+    print("Rebuilding DPDK and DPDK App with new configuration options (This can take several minutes)")
+    #subprocess.call("cd "+rtesdk"; "+dpdkmakecmd+"; cd "+applocation+"; "+appmakecmd+";",
+    #                shell=True,
+    #                stdout=subprocess.DEVNULL,
+    #                stderr=subprocess.DEVNULL)
+
+    print("\nAnalysing Modified DPDK App")
+         
+
+    print("\nSetting DPDK Configuration back to original")
+    for  line in fileinput.FileInput(rtesdk+"/config/common_base", inplace=1):
+        if "CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS" in line and memop is True:
+            sys.stdout.write('CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS="ring_mp_mc"\n')
+        else:
+            sys.stdout.write(line)
+    
+    print("Rebuilding DPDK and DPDK App with original configuration options (This can take several minutes)")
+    #subprocess.call("cd "+rtesdk"; "+dpdkmakecmd+"; cd "+applocation+"; "+appmakecmd+";",
+    #                shell=True,
+    #                stdout=subprocess.DEVNULL,
+    #                stderr=subprocess.DEVNULL)
+elif stepsenabled is False:
+    print("\n No Optimisation Steps are enabled skipping optimisation")
+
+print("\nGenerating report")
+
 datapoints = pcmdatapoints+wallpdatapoints+telemdatapoints
 
 reporttime1 = strftime("%I:%M%p on %d %B %Y", gmtime())
@@ -754,11 +813,6 @@ if generatezip is True:
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.STDOUT,
                     shell=True)
-
-# print("Read Avg:",socketreadavg,"MBps")
-# print("Write Avg:",socketwriteavg,"MBps")
-# print("Write to Read Ratio:",socketwritereadratio)
-# print("Wall Power Avg:",wallpoweravg,"Watts")
 
 server_address = ('', serverport)
 print("Serving results on port", serverport)
