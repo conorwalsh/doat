@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from doatFunctions import *
+import sys
 import subprocess
 import configparser
 import pandas
@@ -74,16 +75,35 @@ if config['REPORTING'].getboolean('generatezip') is True:
 else:
     print("ZIP Archive geneneration is disabled")
 
-dpdkcmd = config['APPPARAM']['dpdkcmd']
-if dpdkcmd is not None:
-    print("DPDK app launch command:", dpdkcmd)
+rtesdk = os.environ['RTE_SDK']
+print("RTE SDK:",rtesdk)
+
+rtetarget = os.environ['RTE_TARGET']
+print("RTE TARGET:",rtetarget)
+
+appcmd = config['APPPARAM']['appcmd']
+if appcmd is not None:
+    print("DPDK app launch command:", appcmd)
 else:
-    sys.exit("No DPDK command was specified (dpdkcmd in config.cfg), ABORT!")
+    sys.exit("No DPDK command was specified (appcmd in config.cfg), ABORT!")
+
+applocation = config['APPPARAM']['applocation']
+if applocation is not None:
+    print("DPDK app location:",applocation)
+else:
+    sys.exit("No DPDK app location was specified (applocation in config.cfg), ABORT!")
+
+telemenabledraw = subprocess.check_output("cat $RTE_SDK/config/common_base | grep CONFIG_RTE_LIBRTE_TELEMETRY", shell=True).decode(sys.stdout.encoding).rstrip().strip()[-1:]
+telemetryenableddpdk = False
+if telemenabledraw is "y":
+    telemetryenableddpdk = True
 
 telemetryenabled = False
-if config['APPPARAM'].getboolean('telemetry') is True:
+if config['APPPARAM'].getboolean('telemetry') is True and telemetryenableddpdk is True:
     telemetryenabled = True
     print("DPDK telemetry is enabled")
+elif telemetryenableddpdk is False:
+    print("Telemetry is disabled in your build of DPDK set CONFIG_RTE_LIBRTE_TELEMETRY=y to use telemetry")
 else:
     print("DPDK telemetry is disabled")
 
@@ -92,6 +112,32 @@ if socketpath is not None and telemetryenabled is True:
     print("DPDK app telemetry socket path:", socketpath)
 elif telemetryenabled is True:
     sys.exit("Telemetry is enabled but socketpath in config.cfg has not been set, ABORT!")
+
+openabled = False
+if config['OPTIMISATION'].getboolean('optimisation') is True:
+    openabled = True
+    print("Optimisation is enabled")
+else:
+    print("Optimisation is disabled")
+
+dpdkmakecmd = config['OPTIMISATION']['dpdkmakecmd']
+if dpdkmakecmd is not None and openabled is True:
+    print("DPDK Make Command:",dpdkmakecmd)
+elif openabled is True:
+    sys.exit("Optimisation is enabled but dpdkmakecmd in config.cfg has not been set, ABORT!")
+
+appmakecmd = config['OPTIMISATION']['appmakecmd']
+if appmakecmd is not None and openabled is True:
+    print("DPDK App Make Command:",appmakecmd)
+elif openabled is True:
+    sys.exit("Optimisation is enabled but appmakecmd in config.cfg has not been set, ABORT!")
+
+memop = False
+if config['OPTIMISATION'].getboolean('memop') is True and openabled is True:
+    memop = True
+    print("Memory Optimisation Step is enabled")
+elif openabled is True:
+    print("Memory Optimisation Step is disabled")
 
 testcore = int(config['CPU']['testcore'])
 
@@ -167,7 +213,7 @@ print("Test pinned to core",
       os.getpid())
 
 print("Starting Process")
-proc = subprocess.Popen(dpdkcmd,
+proc = subprocess.Popen(applocation+appcmd,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.STDOUT,
                         shell=True,
@@ -265,7 +311,8 @@ kill_group_pid(pcm.pid)
 
 kill_group_pid(wallp.pid)
 
-kill_group_pid(telem.pid)
+if telemetryenabled is True:
+    kill_group_pid(telem.pid)
 
 if appdiedduringtest is True:
     sys.exit("Test invalid due to DPDK App dying during test, ABORT!")
@@ -496,161 +543,163 @@ for i, x in enumerate(l2hitcoreavg):
                  str(x) +\
                  "%</p>"
 
-telemdata = pandas.read_csv('tmp/telemetry.csv', sep=',', low_memory=False)
-telemdatapoints = telemdata.shape[0]*telemdata.shape[1]
-telempkts = np.asarray(telemdata["tx_good_packets"].tolist()).astype(np.int)
-telembytes = np.asarray(telemdata["tx_good_bytes"].tolist()).astype(np.int)
-telemerrors = np.asarray(telemdata["tx_errors"].tolist()).astype(np.int)
-telemdropped = np.asarray(telemdata["tx_dropped"].tolist()).astype(np.int)
-telemtime = np.asarray(telemdata["time"].tolist()).astype(np.float)
-telempktdist = telemdata.loc[:,["tx_size_64_packets",
-                                "tx_size_65_to_127_packets",
-                                "tx_size_128_to_255_packets",
-                                "tx_size_256_to_511_packets",
-                                "tx_size_512_to_1023_packets",
-                                "tx_size_1024_to_1522_packets",
-                                "tx_size_1523_to_max_packets"]].tail(1).values[0]
-telempktsizes = ["64",
-                 "65 to 127",
-                 "128 to 255",
-                 "256 to 511",
-                 "512 to 1024",
-                 "1024 to 1522",
-                 "1523 to max"]
-telemrxerrors = telemdata.loc[:,"rx_errors"].tail(1).values[0]
-telemrxerrorsbool = False
-telemtxerrors = telemdata.loc[:,"tx_errors"].tail(1).values[0]
-telemtxerrorsbool = False
-telemrxdropped = telemdata.loc[:,"rx_dropped"].tail(1).values[0]
-telemrxdroppedbool = False
-telemtxdropped = telemdata.loc[:,"tx_dropped"].tail(1).values[0]
-telemtxdroppedbool = False
+telemhtml = ""
+telemdatapoints = 0
+if telemetryenabled is True:
+    telemdata = pandas.read_csv('tmp/telemetry.csv', sep=',', low_memory=False)
+    telemdatapoints = telemdata.shape[0]*telemdata.shape[1]
+    telempkts = np.asarray(telemdata["tx_good_packets"].tolist()).astype(np.int)
+    telembytes = np.asarray(telemdata["tx_good_bytes"].tolist()).astype(np.int)
+    telemerrors = np.asarray(telemdata["tx_errors"].tolist()).astype(np.int)
+    telemdropped = np.asarray(telemdata["tx_dropped"].tolist()).astype(np.int)
+    telemtime = np.asarray(telemdata["time"].tolist()).astype(np.float)
+    telempktdist = telemdata.loc[:,["tx_size_64_packets",
+                                    "tx_size_65_to_127_packets",
+                                    "tx_size_128_to_255_packets",
+                                    "tx_size_256_to_511_packets",
+                                    "tx_size_512_to_1023_packets",
+                                    "tx_size_1024_to_1522_packets",
+                                    "tx_size_1523_to_max_packets"]].tail(1).values[0]
+    telempktsizes = ["64",
+                     "65 to 127",
+                     "128 to 255",
+                     "256 to 511",
+                     "512 to 1024",
+                     "1024 to 1522",
+                     "1523 to max"]
+    telemrxerrors = telemdata.loc[:,"rx_errors"].tail(1).values[0]
+    telemrxerrorsbool = False
+    telemtxerrors = telemdata.loc[:,"tx_errors"].tail(1).values[0]
+    telemtxerrorsbool = False
+    telemrxdropped = telemdata.loc[:,"rx_dropped"].tail(1).values[0]
+    telemrxdroppedbool = False
+    telemtxdropped = telemdata.loc[:,"tx_dropped"].tail(1).values[0]
+    telemtxdroppedbool = False
 
-if int(telemrxerrors) is not 0:
-    print("ERROR: RX errors occured during this test (rx_errors: "+str(telemrxerrors)+")")
-    telemrxerrorsbool = True
-if int(telemtxerrors) is not 0:
-    print("ERROR: TX errors occured during this test (tx_errors: "+str(telemtxerrors)+")")
-    telemtxerrorsbool = True
+    if int(telemrxerrors) is not 0:
+        print("ERROR: RX errors occured during this test (rx_errors: "+str(telemrxerrors)+")")
+        telemrxerrorsbool = True
+    if int(telemtxerrors) is not 0:
+        print("ERROR: TX errors occured during this test (tx_errors: "+str(telemtxerrors)+")")
+        telemtxerrorsbool = True
 
-if int(telemrxdropped) is not 0:
-    print("ERROR: RX Packets were dropped during this test (rx_dropped: "+str(telemrxdropped)+")")
-    telemrxdroppedbool = True
-if int(telemtxdropped) is not 0:
-    print("ERROR: TX Packets were dropped during this test (tx_dropped: "+str(telemtxdropped)+")")
-    telemtxdroppedbool = True
+    if int(telemrxdropped) is not 0:
+        print("ERROR: RX Packets were dropped during this test (rx_dropped: "+str(telemrxdropped)+")")
+        telemrxdroppedbool = True
+    if int(telemtxdropped) is not 0:
+        print("ERROR: TX Packets were dropped during this test (tx_dropped: "+str(telemtxdropped)+")")
+        telemtxdroppedbool = True
 
-plt.figure(6)
-x = np.arange(telempktdist.size)
-plt.bar(x, height=telempktdist)
-plt.xticks(x, telempktsizes, rotation=45)
-plt.xlabel("Packet Sizes (Bytes)")
-plt.ylabel("Packets")
-plt.title("Packet Size Distribution")
-plt.savefig("./tmp/pktdist.png", bbox_inches="tight")
+    plt.figure(6)
+    x = np.arange(telempktdist.size)
+    plt.bar(x, height=telempktdist)
+    plt.xticks(x, telempktsizes, rotation=45)
+    plt.xlabel("Packet Sizes (Bytes)")
+    plt.ylabel("Packets")
+    plt.title("Packet Size Distribution")
+    plt.savefig("./tmp/pktdist.png", bbox_inches="tight")
 
-telembyteszero = telembytes[0]
-telembytesreset = []
-for y in telembytes:
-    telembytesreset.append(y-telembyteszero)
+    telembyteszero = telembytes[0]
+    telembytesreset = []
+    for y in telembytes:
+        telembytesreset.append(y-telembyteszero)
 
-telemgbytes = [x / 1000000000 for x in telembytesreset]
+    telemgbytes = [x / 1000000000 for x in telembytesreset]
 
-telemgbytesmax = np.round(max(telemgbytes),1)
+    telemgbytesmax = np.round(max(telemgbytes),1)
 
-telempktszero = telempkts[0]
-telempktsreset = []
-for y in telempkts:
+    telempktszero = telempkts[0]
+    telempktsreset = []
+    for y in telempkts:
         telempktsreset.append(y-telempktszero)
 
-telempktsresetmax = max(telempktsreset)
+    telempktsresetmax = max(telempktsreset)
 
-plt.figure(7)
-fig, ax1 = plt.subplots()
-ax2 = ax1.twinx()
-ax1.plot(telemtime, telemgbytes, alpha=1, label="Data Transfered")
-ax2.plot(telemtime, telempktsreset, alpha=0.6, color='orange', label="Packets Transfered")
-ax1.set_xlabel('Time (Seconds)')
-ax1.set_ylabel('Data Transfered (GB)')
-ax2.set_ylabel('Packets Transfered (Packets)')
-ax1.set_ylim(bottom=0)
-ax2.set_ylim(bottom=0)
-ax1.legend(loc=2)
-ax2.legend(loc=1)
-plt.title("Data/Packets Transfered")
-plt.xlim(left=0)
-plt.xlim(right=max(telemtime))
-plt.savefig("./tmp/transfer.png", bbox_inches="tight")
+    plt.figure(7)
+    fig, ax1 = plt.subplots()
+    ax2 = ax1.twinx()
+    ax1.plot(telemtime, telemgbytes, alpha=1, label="Data Transfered")
+    ax2.plot(telemtime, telempktsreset, alpha=0.6, color='orange', label="Packets Transfered")
+    ax1.set_xlabel('Time (Seconds)')
+    ax1.set_ylabel('Data Transfered (GB)')
+    ax2.set_ylabel('Packets Transfered (Packets)')
+    ax1.set_ylim(bottom=0)
+    ax2.set_ylim(bottom=0)
+    ax1.legend(loc=2)
+    ax2.legend(loc=1)
+    plt.title("Data/Packets Transfered")
+    plt.xlim(left=0)
+    plt.xlim(right=max(telemtime))
+    plt.savefig("./tmp/transfer.png", bbox_inches="tight")
 
-telempktssec = []
-for i, y in enumerate(telempktsreset):
-    if i is not 0 and i is not 1:
-        telempktssec.append((y-telempktsreset[i-1])/teststepsize)
-    elif i is 1:
-        val = (y-telempktsreset[i-1])/teststepsize
-        telempktssec.append(val)
-        telempktssec[0] = val
+    telempktssec = []
+    for i, y in enumerate(telempktsreset):
+        if i is not 0 and i is not 1:
+            telempktssec.append((y-telempktsreset[i-1])/teststepsize)
+        elif i is 1:
+            val = (y-telempktsreset[i-1])/teststepsize
+            telempktssec.append(val)
+            telempktssec[0] = val
+        else:
+            telempktssec.append(0)
+
+    telempktsecavg = np.round(np.mean(telempktssec),0)
+
+    telemthroughput = []
+    for i, y in enumerate(telembytesreset):
+        if i is not 0 and i is not 1:
+            telemthroughput.append((y-telembytesreset[i-1])/1000000000*8/teststepsize)
+        elif i is 1:
+            val = ((y-telembytesreset[i-1])/1000000000*8/teststepsize)
+            telemthroughput.append(val)
+            telemthroughput[0] = val
+        else:
+            telemthroughput.append(0)
+
+    telemthroughputavg = np.round(np.mean(telemthroughput),2)
+
+    plt.figure(8)
+    fig, ax1 = plt.subplots()
+    ax2 = ax1.twinx()
+    ax1.plot(telemtime, telemthroughput, alpha=1, label="Throughput")
+    ax2.plot(telemtime, telempktssec, alpha=0.6, color='orange', label="Packets Per Second")
+    ax1.set_xlabel('Time (Seconds)')
+    ax1.set_ylabel('Throughput (Gbps)')
+    ax2.set_ylabel('Packets Per Second (Packets)')
+    ax1.set_ylim(bottom=0)
+    ax2.set_ylim(bottom=0)
+    ax2.set_ylim(top=max(telempktssec)+1000000)
+    ax1.set_ylim(top=max(telemthroughput)+1)
+    ax1.legend(loc=2)
+    ax2.legend(loc=1)
+    plt.title("Transfer Speeds")
+    plt.xlim(left=0)
+    plt.xlim(right=max(telemtime))
+    plt.savefig("./tmp/speeds.png", bbox_inches="tight")
+
+    telemhtml += "<h2>Telemetry</h2><img src='./tmp/pktdist.png'/><br/><img src='./tmp/transfer.png'/><p>Total Data Transfered: "+str(telemgbytesmax)+"GB</p><p>Total Packets Transfered: "+str(format(telempktsresetmax,","))+" packets</p><img src='./tmp/speeds.png'/><p>Average Throughput: "+str(telemthroughputavg)+" Gbps</p><p>Average Packets Per Second: "+str(format(telempktsecavg,","))+" pps</p>"
+
+    telemhtml+="<p><a href='./tmp/telemetry.csv' class='btn btn-info' role='button'>Download Full Telemetry CSV</a></p><h2>Errors</h2>"
+
+    if telemrxerrorsbool is False:
+        telemhtml+="<h3 style='color:green;font-weight:bold;'>RX Errors: "+str(telemrxerrors)+"</h3>"
     else:
-        telempktssec.append(0)
-
-telempktsecavg = np.round(np.mean(telempktssec),0)
-
-telemthroughput = []
-for i, y in enumerate(telembytesreset):
-    if i is not 0 and i is not 1:
-        telemthroughput.append((y-telembytesreset[i-1])/1000000000*8/teststepsize)
-    elif i is 1:
-        val = ((y-telembytesreset[i-1])/1000000000*8/teststepsize)
-        telemthroughput.append(val)
-        telemthroughput[0] = val
+        telemhtml+="<h3 style='color:red;font-weight:bold;'>RX Errors: "+str(telemrxerrors)+"</h3>"
+    if telemtxerrorsbool is False:
+        telemhtml+="<h3 style='color:green;font-weight:bold;'>TX Errors: "+str(telemtxerrors)+"</h3>"
     else:
-        telemthroughput.append(0)
+        telemhtml+="<h3 style='color:red;font-weight:bold;'>TX Errors: "+str(telemtxerrors)+"</h3>"
 
-telemthroughputavg = np.round(np.mean(telemthroughput),2)
-
-plt.figure(8)
-fig, ax1 = plt.subplots()
-ax2 = ax1.twinx()
-ax1.plot(telemtime, telemthroughput, alpha=1, label="Throughput")
-ax2.plot(telemtime, telempktssec, alpha=0.6, color='orange', label="Packets Per Second")
-ax1.set_xlabel('Time (Seconds)')
-ax1.set_ylabel('Throughput (Gbps)')
-ax2.set_ylabel('Packets Per Second (Packets)')
-ax1.set_ylim(bottom=0)
-ax2.set_ylim(bottom=0)
-ax2.set_ylim(top=max(telempktssec)+1000000)
-ax1.set_ylim(top=max(telemthroughput)+1)
-ax1.legend(loc=2)
-ax2.legend(loc=1)
-plt.title("Transfer Speeds")
-plt.xlim(left=0)
-plt.xlim(right=max(telemtime))
-plt.savefig("./tmp/speeds.png", bbox_inches="tight")
-
-
-telemhtml = "<h2>Telemetry</h2><img src='./tmp/pktdist.png'/><br/><img src='./tmp/transfer.png'/><p>Total Data Transfered: "+str(telemgbytesmax)+"GB</p><p>Total Packets Transfered: "+str(format(telempktsresetmax,","))+" packets</p><img src='./tmp/speeds.png'/><p>Average Throughput: "+str(telemthroughputavg)+" Gbps</p><p>Average Packets Per Second: "+str(format(telempktsecavg,","))+" pps</p>"
-
-telemhtml+="<p><a href='./tmp/telemetry.csv' class='btn btn-info' role='button'>Download Full Telemetry CSV</a></p><h2>Errors</h2>"
-
-if telemrxerrorsbool is False:
-    telemhtml+="<h3 style='color:green;font-weight:bold;'>RX Errors: "+str(telemrxerrors)+"</h3>"
+    if telemrxdroppedbool is False:
+        telemhtml+="<h3 style='color:green;font-weight:bold;'>RX Dropped Packets: "+str(telemrxdropped)+"</h3>"
+    else:
+        telemhtml+="<h3 style='color:red;font-weight:bold;'>RX Dropped Packets: "+str(telemrxdropped)+"</h3>"
+    if telemtxdroppedbool is False:
+        telemhtml+="<h3 style='color:green;font-weight:bold;'>TX Dropped Packets: "+str(telemtxdropped)+"</h3>"
+    else:
+        telemhtml+="<h3 style='color:red;font-weight:bold;'>TX Dropped Packets: "+str(telemtxdropped)+"</h3>"
 else:
-    telemhtml+="<h3 style='color:red;font-weight:bold;'>RX Errors: "+str(telemrxerrors)+"</h3>"
-if telemtxerrorsbool is False:
-    telemhtml+="<h3 style='color:green;font-weight:bold;'>TX Errors: "+str(telemtxerrors)+"</h3>"
-else:
-    telemhtml+="<h3 style='color:red;font-weight:bold;'>TX Errors: "+str(telemtxerrors)+"</h3>"
-
-if telemrxdroppedbool is False:
-    telemhtml+="<h3 style='color:green;font-weight:bold;'>RX Dropped Packets: "+str(telemrxdropped)+"</h3>"
-else:
-    telemhtml+="<h3 style='color:red;font-weight:bold;'>RX Dropped Packets: "+str(telemrxdropped)+"</h3>"
-if telemtxdroppedbool is False:
-    telemhtml+="<h3 style='color:green;font-weight:bold;'>TX Dropped Packets: "+str(telemtxdropped)+"</h3>"
-else:
-    telemhtml+="<h3 style='color:red;font-weight:bold;'>TX Dropped Packets: "+str(telemtxdropped)+"</h3>"
-
-#telemhtml+="<p><a href='./tmp/telemetry.csv' class='btn btn-info' role='button'>Download Full Telemetry CSV</a></p>"
+    telemhtml += "<h2>Telemetry</h2><p style='color:red'>Telemetry is disabled</p>"
 
 reporthtml=""
 if generatepdf is True:
@@ -658,8 +707,6 @@ if generatepdf is True:
 if generatezip is True:
     reporthtml+="<p style='text-align:center'><a href='./tmp/doat_results.zip' class='btn btn-success' role='button' style='font-size: 28px;'>Download Results Zip</a></p>"
 datapoints = pcmdatapoints+wallpdatapoints+telemdatapoints
-
-#telemhtml+="<h2>Data Points</h2><p>This report was compiled using "+str(datapoints)+" data points</p>"
 
 reporttime1 = strftime("%I:%M%p on %d %B %Y", gmtime())
 reporttime2 = strftime("%I:%M%p %d/%m/%Y", gmtime())
@@ -671,7 +718,7 @@ if testername is not None and testeremail is not None and testername is not "" a
     projectdetailshtml += "<p style='font-size: 18px;'>Tester: " + testername + " ("+testeremail+")</p>"
 
 indexfile = open("index.html", "w")
-indexfile.write("<html><head><title>DOAT Report</title><link rel='stylesheet' href='./webcomponents/bootstrap.341.min.css'><script src='./webcomponents/jquery.341.min.js'></script><script src='./webcomponents/bootstrap.341.min.js'></script><style>@media print{a{display:none!important}}</style></head><body><div class='jumbotron text-center'><h1>DOAT Report</h1><p style='font-size: 14px'>DPDK Optimisation & Analysis Tool</p><p>Report compiled at "+reporttime1+" using "+str(format(datapoints,","))+" data points</p>" + 
+indexfile.write("<html><head><title>DOAT Report</title><link rel='stylesheet' href='./webcomponents/bootstrap.341.min.css'><script src='./webcomponents/jquery.341.min.js'></script><script src='./webcomponents/bootstrap.341.min.js'></script><style>@media print{a{display:none!important}img{width:100%!important}}</style></head><body><div class='jumbotron text-center'><h1>DOAT Report</h1><p style='font-size: 14px'>DPDK Optimisation & Analysis Tool</p><p>Report compiled at "+reporttime1+" using "+str(format(datapoints,","))+" data points</p>" + 
                 projectdetailshtml +
                 "</div><div class='container'>" +
                 "<div class='row' style='page-break-after: always;'>" + membwhtml + "</div>" +
@@ -689,7 +736,7 @@ indexfile.close()
 if generatepdf is True:
     pdfoptions = {'page-size': 'A4',
                   'quiet': '',
-                  'margin-top': '25.4',
+                  'margin-top': '19.1',
                   'margin-right': '25.4',
                   'margin-bottom': '25.4',
                   'margin-left': '25.4',
