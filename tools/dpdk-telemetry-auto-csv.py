@@ -43,7 +43,7 @@ DEFAULT_RT = 10.0
 DEFAULT_ST = 0.25
 DEFAULT_CSV = "tmp/telemetry.csv"
 
-# Ordered dictionary containing all data points required and there key for the JSON file
+# Ordered dictionary containing all data points required and their key for the JSON file
 OBJECTITEMS = OrderedDict()
 OBJECTITEMS["tx_good_packets"] = 1
 OBJECTITEMS["tx_good_bytes"] = 3
