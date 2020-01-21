@@ -1056,7 +1056,7 @@ if openabled is True and stepsenabled is True:
     plt.ylim(bottom=0)
     plt.xlim(left=0)
     plt.xlim(right=max(opsocketx))
-    plt.savefig("./tmp/l3hit.png", bbox_inches="tight")
+    plt.savefig("./tmp/l3hit_op.png", bbox_inches="tight")
     opl3hithtml = "<img src='./tmp/l3hit_op.png'/>"
     if appmasterenabled is True:
         opl3hithtml += "<p>Master Core (" +\
@@ -1083,7 +1083,7 @@ if openabled is True and stepsenabled is True:
     plt.ylim(bottom=0)
     plt.xlim(left=0)
     plt.xlim(right=max(opsocketx))
-    plt.savefig("./tmp/l2hit.png", bbox_inches="tight")
+    plt.savefig("./tmp/l2hit_op.png", bbox_inches="tight")
     opl2hithtml = "<img src='./tmp/l2hit_op.png'/>"
     if appmasterenabled is True:
         opl2hithtml += "<p>Master Core (" +\
