@@ -895,7 +895,374 @@ if openabled is True and stepsenabled is True:
     opsocketwriteavg = round(sum(opsocketwrite)/len(opsocketwrite), 2)
     opsocketwritereadratio = round(opsocketwriteavg/opsocketreadavg,2)
 
-    
+    	opl3missmaster = 0
+	opl2missmaster = 0
+	opl3hitmaster = 0
+	opl2hitmaster = 0
+	opl3missmasteravg = 0.0
+	opl2missmasteravg = 0.0
+	opl3hitmasteravg = 0.0
+	opl2hitmasteravg = 0.0
+	if appmasterenabled is True:
+		opl3missmaster = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc("Core"+str(appmaster)+" (Socket "+str(appsocket)+")")+4].tolist())[1:]).astype(np.float)*1000*1000
+		opl2missmaster = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc("Core"+str(appmaster)+" (Socket "+str(appsocket)+")")+5].tolist())[1:]).astype(np.float)*1000*1000
+		opl3hitmaster = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc("Core"+str(appmaster)+" (Socket "+str(appsocket)+")")+6].tolist())[1:]).astype(np.float)*100
+		opl2hitmaster = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc("Core"+str(appmaster)+" (Socket "+str(appsocket)+")")+7].tolist())[1:]).astype(np.float)*100
+		opl3missmasteravg = round(sum(opl3missmaster)/len(opl3missmaster), 1)
+		opl2missmasteravg = round(sum(opl2missmaster)/len(opl2missmaster), 1)
+		opl3hitmasteravg = round(sum(opl3hitmaster)/len(opl3hitmaster), 1)
+		opl2hitmasteravg = round(sum(opl2hitmaster)/len(opl2hitmaster), 1)
+
+	opl3misscore = []
+	opl2misscore = []
+	opl3hitcore = []
+	opl2hitcore = []
+
+	for x in appcores:
+		opl3misscore.append(np.asarray((oppcmdata.iloc[:,oppcmdata.columns.get_loc("Core"+str(x)+" (Socket "+str(appsocket)+")")+4].tolist())[1:]).astype(np.float)*1000*1000)
+		opl2misscore.append(np.asarray((oppcmdata.iloc[:,oppcmdata.columns.get_loc("Core"+str(x)+" (Socket "+str(appsocket)+")")+5].tolist())[1:]).astype(np.float)*1000*1000)
+		opl3hitcore.append(np.asarray((oppcmdata.iloc[:,oppcmdata.columns.get_loc("Core"+str(x)+" (Socket "+str(appsocket)+")")+6].tolist())[1:]).astype(np.float)*100)
+		opl2hitcore.append(np.asarray((oppcmdata.iloc[:,oppcmdata.columns.get_loc("Core"+str(x)+" (Socket "+str(appsocket)+")")+7].tolist())[1:]).astype(np.float)*100)
+
+	opl3misscoreavg = []
+	opl2misscoreavg = []
+	opl3hitcoreavg = []
+	opl2hitcoreavg = []
+	for x in opl3misscore:
+		opl3misscoreavg.append(round(sum(x)/len(x), 1))
+	for x in opl2misscore:
+		opl2misscoreavg.append(round(sum(x)/len(x), 1))
+	for x in opl3hitcore:
+		opl3hitcoreavg.append(round(sum(x)/len(x), 1))
+	for x in opl2hitcore:
+		opl2hitcoreavg.append(round(sum(x)/len(x), 1))
+
+	opsocketx = []
+	optimex = 0
+	for x in opsocketread:
+		opsocketx.append(optimex)
+		optimex += teststepsize
+
+	plt.figure(9)
+	plt.plot(opsocketx, opsocketread, label="Read")
+	plt.plot(opsocketx, opsocketwrite, label="Write")
+	plt.xlabel("Time (Seconds)")
+	plt.ylabel("Bandwidth (MBps)")
+	plt.title("Memory Bandwidth")
+	plt.legend()
+	plt.ylim(bottom=0)
+	plt.xlim(left=0)
+	plt.ylim(top=(max(opsocketwrite)+100))
+	plt.xlim(right=max(opsocketx))
+	plt.savefig("./tmp/membw_op.png", bbox_inches="tight")
+
+	opmembwhtml = "<h2>Memory Bandwidth</h2><img src='./tmp/membw_op.png'/><p>Read Avg: " +\
+				str(opsocketreadavg) +\
+				"MBps</p><p>Write Avg: " +\
+				str(opsocketwriteavg) +\
+				"MBps</p><p>Write to Read Ratio: " +\
+				str(opsocketwritereadratio) +\
+				"</p><p><a href='./tmp/pcm_op.csv' class='btn btn-info' role='button'>Download Full PCM CSV</a>"
+
+	opwallpdata = pandas.read_csv('tmp/opwallpower_op.csv', sep=',', low_memory=False)
+	opwallpdatapoints = opwallpdata.shape[0]*opwallpdata.shape[1]
+	opwallpower = np.asarray(opwallpdata["power"].tolist()).astype(np.int)
+	opwallpowertime = np.asarray(opwallpdata["time"].tolist()).astype(np.int)
+	opwallpowertimezero = opwallpowertime[0]
+	opwallpowerx = []
+	for x in opwallpowertime:
+		opwallpowerx.append(x-opwallpowertimezero)
+	opwallpoweravg = round(sum(opwallpower)/len(opwallpower), 1)
+
+	opwallpowerhtml = "<h2>Wall Power</h2><img src='./tmp/opwallpower_op.png'/><p>Wall Power Avg: " +\
+					str(opwallpoweravg) +\
+					"Watts</p><p><a href='./tmp/opwallpower_op.csv' class='btn btn-info' role='button'>Download Power CSV</a>"
+
+	plt.figure(10)
+	plt.plot(opwallpowerx, opwallpower, label="Wall Power")
+	plt.xlabel("Time (Seconds)")
+	plt.ylabel("Power (Watts)")
+	plt.title("Wall Power")
+	plt.legend()
+	plt.ylim(bottom=0)
+	plt.ylim(top=(max(opwallpower)+50))
+	plt.xlim(left=0)
+	plt.xlim(right=max(opwallpowerx))
+	plt.savefig("./tmp/wallpower_op.png", bbox_inches="tight")
+
+	plt.figure(11)
+	for i, y in enumerate(opl3misscore):
+		plt.plot(opsocketx, y, label="Core " + str(appcores[i]))
+	if appmasterenabled is True:
+		plt.plot(opsocketx, opl3missmaster, alpha=0.5, label="Master Core ("+str(appmaster)+")")
+	plt.xlabel("Time (Seconds)")
+	plt.ylabel("L3 Miss Count")
+	plt.title("L3 Cache Misses")
+	plt.legend()
+	plt.ylim(bottom=0)
+	plt.xlim(left=0)
+	plt.xlim(right=max(opsocketx))
+	plt.savefig("./tmp/l3miss_op.png", bbox_inches="tight")
+	opl3misshtml = "<h2>L3 Cache</h2><img src='./tmp/l3miss_op.png'/>"
+	if appmasterenabled is True:
+		opl3misshtml += "<p>Master Core (" +\
+					  str(appmaster) +\
+					  ") L3 Misses: " +\
+					  str(opl3missmasteravg) +\
+					  "</p>"
+	for i, x in enumerate(opl3misscoreavg):
+		opl3misshtml += "<p>Core " +\
+					  str(appcores[i]) +\
+					  " L3 Misses: " +\
+					  str(x) +\
+					  "</p>"
+
+	plt.figure(12)
+	for i, y in enumerate(opl2misscore):
+		plt.plot(opsocketx, y, label="Core "+str(appcores[i]))
+	if appmasterenabled is True:
+		plt.plot(opsocketx, opl2missmaster, alpha=0.5, label="Master Core ("+str(appmaster)+")")
+	plt.xlabel("Time (Seconds)")
+	plt.ylabel("L2 Miss Count")
+	plt.title("L2 Cache Misses")
+	plt.legend()
+	plt.ylim(bottom=0)
+	plt.xlim(left=0)
+	plt.xlim(right=max(opsocketx))
+	plt.savefig("./tmp/l2miss_op.png", bbox_inches="tight")
+	opl2misshtml = "<h2>L2 Cache</h2><img src='./tmp/l2miss_op.png'/>"
+	if appmasterenabled is True:
+		opl2misshtml += "<p>Master Core (" +\
+					  str(appmaster) +\
+					  ") L2 Misses: " +\
+					  str(opl3missmasteravg) +\
+					  "</p>"
+	for i, x in enumerate(opl2misscoreavg):
+		opl2misshtml += "<p>Core " +\
+					  str(appcores[i]) +\
+					  " L2 Misses: " +\
+					  str(x) +\
+					  "</p>"
+
+	plt.figure(13)
+	for i, y in enumerate(opl3hitcore):
+		plt.plot(opsocketx, y, label="Core " + str(appcores[i]))
+	if appmasterenabled is True:
+		plt.plot(opsocketx, opl3hitmaster, alpha=0.5, label="Master Core ("+str(appmaster)+")")
+	plt.xlabel("Time (Seconds)")
+	plt.ylabel("L3 Hit (%)")
+	plt.title("L3 Cache Hits")
+	plt.legend()
+	plt.ylim(bottom=0)
+	plt.xlim(left=0)
+	plt.xlim(right=max(opsocketx))
+	plt.savefig("./tmp/l3hit.png", bbox_inches="tight")
+	opl3hithtml = "<img src='./tmp/l3hit_op.png'/>"
+	if appmasterenabled is True:
+		opl3hithtml += "<p>Master Core (" +\
+					 str(appmaster) +\
+					 ") L3 Hits: " +\
+					 str(opl3hitmasteravg) +\
+					 "%</p>"
+	for i, x in enumerate(opl3hitcoreavg):
+		opl3hithtml += "<p>Core " +\
+					 str(appcores[i]) +\
+					 " L3 Hits: " +\
+					 str(x) +\
+					 "%</p>"
+
+	plt.figure(14)
+	for i, y in enumerate(opl2hitcore):
+		plt.plot(opsocketx, y, label="Core "+str(appcores[i]))
+	if appmasterenabled is True:
+		plt.plot(opsocketx, opl2hitmaster, alpha=0.5, label="Master Core ("+str(appmaster)+")")
+	plt.xlabel("Time (Seconds)")
+	plt.ylabel("L2 Hit (%)")
+	plt.title("L2 Cache Hits")
+	plt.legend()
+	plt.ylim(bottom=0)
+	plt.xlim(left=0)
+	plt.xlim(right=max(opsocketx))
+	plt.savefig("./tmp/l2hit.png", bbox_inches="tight")
+	opl2hithtml = "<img src='./tmp/l2hit_op.png'/>"
+	if appmasterenabled is True:
+		opl2hithtml += "<p>Master Core (" +\
+					 str(appmaster) +\
+					 ") L3 Hits: " +\
+					 str(opl2hitmasteravg) +\
+					 "%</p>"
+	for i, x in enumerate(opl2hitcoreavg):
+		opl2hithtml += "<p>Core " +\
+					 str(appcores[i]) +\
+					 " L2 Hits: " +\
+					 str(x) +\
+					 "%</p>"
+
+	optelemhtml = ""
+	optelemdatapoints = 0
+	if telemetryenabled is True:
+		optelemdata = pandas.read_csv('tmp/telemetry_op.csv', sep=',', low_memory=False)
+		optelemdatapoints = optelemdata.shape[0]*optelemdata.shape[1]
+		optelempkts = np.asarray(optelemdata["tx_good_packets"].tolist()).astype(np.int)
+		optelembytes = np.asarray(optelemdata["tx_good_bytes"].tolist()).astype(np.int)
+		optelemerrors = np.asarray(optelemdata["tx_errors"].tolist()).astype(np.int)
+		optelemdropped = np.asarray(optelemdata["tx_dropped"].tolist()).astype(np.int)
+		optelemtime = np.asarray(optelemdata["time"].tolist()).astype(np.float)
+		optelempktdist = optelemdata.loc[:,["tx_size_64_packets",
+										"tx_size_65_to_127_packets",
+										"tx_size_128_to_255_packets",
+										"tx_size_256_to_511_packets",
+										"tx_size_512_to_1023_packets",
+										"tx_size_1024_to_1522_packets",
+										"tx_size_1523_to_max_packets"]].tail(1).values[0]
+		optelempktsizes = ["64",
+						   "65 to 127",
+						   "128 to 255",
+						   "256 to 511",
+						   "512 to 1024",
+						   "1024 to 1522",
+						   "1523 to max"]
+		optelemrxerrors = optelemdata.loc[:,"rx_errors"].tail(1).values[0]
+		optelemrxerrorsbool = False
+		optelemtxerrors = optelemdata.loc[:,"tx_errors"].tail(1).values[0]
+		optelemtxerrorsbool = False
+		optelemrxdropped = optelemdata.loc[:,"rx_dropped"].tail(1).values[0]
+		optelemrxdroppedbool = False
+		optelemtxdropped = optelemdata.loc[:,"tx_dropped"].tail(1).values[0]
+		optelemtxdroppedbool = False
+
+		if int(optelemrxerrors) is not 0:
+			print("ERROR: RX errors occured during this test (rx_errors: "+str(optelemrxerrors)+")")
+			optelemrxerrorsbool = True
+		if int(optelemtxerrors) is not 0:
+			print("ERROR: TX errors occured during this test (tx_errors: "+str(optelemtxerrors)+")")
+			optelemtxerrorsbool = True
+
+		if int(optelemrxdropped) is not 0:
+			print("ERROR: RX Packets were dropped during this test (rx_dropped: "+str(optelemrxdropped)+")")
+			optelemrxdroppedbool = True
+		if int(optelemtxdropped) is not 0:
+			print("ERROR: TX Packets were dropped during this test (tx_dropped: "+str(optelemtxdropped)+")")
+			optelemtxdroppedbool = True
+
+		plt.figure(15)
+		x = np.arange(optelempktdist.size)
+		plt.bar(x, height=optelempktdist)
+		plt.xticks(x, optelempktsizes, rotation=45)
+		plt.xlabel("Packet Sizes (Bytes)")
+		plt.ylabel("Packets")
+		plt.title("Packet Size Distribution")
+		plt.savefig("./tmp/pktdist_op.png", bbox_inches="tight")
+
+		optelembyteszero = optelembytes[0]
+		optelembytesreset = []
+		for y in optelembytes:
+			optelembytesreset.append(y-optelembyteszero)
+
+		optelemgbytes = [x / 1000000000 for x in optelembytesreset]
+
+		optelemgbytesmax = np.round(max(optelemgbytes),1)
+
+		optelempktszero = optelempkts[0]
+		optelempktsreset = []
+		for y in optelempkts:
+			optelempktsreset.append(y-optelempktszero)
+
+		optelempktsresetmax = max(optelempktsreset)
+
+		plt.figure(16)
+		fig, ax1 = plt.subplots()
+		ax2 = ax1.twinx()
+		ax1.plot(optelemtime, optelemgbytes, alpha=1, label="Data Transfered")
+		ax2.plot(optelemtime, optelempktsreset, alpha=0.6, color='orange', label="Packets Transfered")
+		ax1.set_xlabel('Time (Seconds)')
+		ax1.set_ylabel('Data Transfered (GB)')
+		ax2.set_ylabel('Packets Transfered (Packets)')
+		ax1.set_ylim(bottom=0)
+		ax2.set_ylim(bottom=0)
+		ax1.legend(loc=2)
+		ax2.legend(loc=1)
+		plt.title("Data/Packets Transfered")
+		plt.xlim(left=0)
+		plt.xlim(right=max(optelemtime))
+		plt.savefig("./tmp/transfer_op.png", bbox_inches="tight")
+
+		optelempktssec = []
+		for i, y in enumerate(optelempktsreset):
+			if i is not 0 and i is not 1:
+				optelempktssec.append((y-optelempktsreset[i-1])/teststepsize)
+			elif i is 1:
+				val = (y-optelempktsreset[i-1])/teststepsize
+				optelempktssec.append(val)
+				optelempktssec[0] = val
+			else:
+				optelempktssec.append(0)
+
+		optelempktsecavg = np.round(np.mean(optelempktssec),0)
+
+		optelemthroughput = []
+		for i, y in enumerate(optelembytesreset):
+			if i is not 0 and i is not 1:
+				optelemthroughput.append((y-optelembytesreset[i-1])/1000000000*8/teststepsize)
+			elif i is 1:
+				val = ((y-optelembytesreset[i-1])/1000000000*8/teststepsize)
+				optelemthroughput.append(val)
+				optelemthroughput[0] = val
+			else:
+				optelemthroughput.append(0)
+
+		optelemthroughputavg = np.round(np.mean(optelemthroughput),2)
+
+		plt.figure(17)
+		fig, ax1 = plt.subplots()
+		ax2 = ax1.twinx()
+		ax1.plot(optelemtime, optelemthroughput, alpha=1, label="Throughput")
+		ax2.plot(optelemtime, optelempktssec, alpha=0.6, color='orange', label="Packets Per Second")
+		ax1.set_xlabel('Time (Seconds)')
+		ax1.set_ylabel('Throughput (Gbps)')
+		ax2.set_ylabel('Packets Per Second (Packets)')
+		ax1.set_ylim(bottom=0)
+		ax2.set_ylim(bottom=0)
+		ax2.set_ylim(top=max(optelempktssec)+1000000)
+		ax1.set_ylim(top=max(optelemthroughput)+1)
+		ax1.legend(loc=2)
+		ax2.legend(loc=1)
+		plt.title("Transfer Speeds")
+		plt.xlim(left=0)
+		plt.xlim(right=max(optelemtime))
+		plt.savefig("./tmp/speeds_op.png", bbox_inches="tight")
+
+		optelemhtml += "<h2>Telemetry</h2><img src='./tmp/pktdist_op.png'/><br/><img src='./tmp/transfer_op.png'/><p>Total Data Transfered: "+str(optelemgbytesmax)+"GB</p><p>Total Packets Transfered: "+str(format(optelempktsresetmax,","))+" packets</p><img src='./tmp/speeds.png'/><p>Average Throughput: "+str(optelemthroughputavg)+" Gbps</p><p>Average Packets Per Second: "+str(format(optelempktsecavg,","))+" pps</p>"
+
+		optelemhtml+="<p><a href='./tmp/telemetry_op.csv' class='btn btn-info' role='button'>Download Full Telemetry CSV</a></p><h2>Errors</h2>"
+
+		if optelemrxerrorsbool is False:
+			optelemhtml+="<h3 style='color:green;font-weight:bold;'>RX Errors: "+str(optelemrxerrors)+"</h3>"
+		else:
+			optelemhtml+="<h3 style='color:red;font-weight:bold;'>RX Errors: "+str(optelemrxerrors)+"</h3>"
+		if optelemtxerrorsbool is False:
+			optelemhtml+="<h3 style='color:green;font-weight:bold;'>TX Errors: "+str(optelemtxerrors)+"</h3>"
+		else:
+			optelemhtml+="<h3 style='color:red;font-weight:bold;'>TX Errors: "+str(optelemtxerrors)+"</h3>"
+
+		if optelemrxdroppedbool is False:
+			optelemhtml+="<h3 style='color:green;font-weight:bold;'>RX Dropped Packets: "+str(optelemrxdropped)+"</h3>"
+		else:
+			optelemhtml+="<h3 style='color:red;font-weight:bold;'>RX Dropped Packets: "+str(optelemrxdropped)+"</h3>"
+		if optelemtxdroppedbool is False:
+			optelemhtml+="<h3 style='color:green;font-weight:bold;'>TX Dropped Packets: "+str(optelemtxdropped)+"</h3>"
+		else:
+			optelemhtml+="<h3 style='color:red;font-weight:bold;'>TX Dropped Packets: "+str(optelemtxdropped)+"</h3>"
+	else:
+		optelemhtml += "<h2>Telemetry</h2><p style='color:red'>Telemetry is disabled</p>"
+		
+	ophtml = 	"<div class='row' style='page-break-after: always;'>" + opmembwhtml + "</div>" +
+				"<div class='row' style='page-break-after: always;'>" + opwallpowerhtml + "</div>" +
+				"<div class='row' style='page-break-after: always;'>" + opl3misshtml + "</div>" +
+				"<div class='row' style='page-break-after: always;'>" + opl3hithtml + "</div>" +
+				"<div class='row' style='page-break-after: always;'>" + opl2misshtml + "</div>" +
+				"<div class='row' style='page-break-after: always;'>" + opl2hithtml + "</div>" +
+				"<div class='row'>" + optelemhtml + "</div>" +
 
     print("\nSetting DPDK Configuration back to original")
     for  line in fileinput.FileInput(rtesdk+"/config/common_base", inplace=1):
