@@ -895,7 +895,7 @@ if openabled is True and stepsenabled is True:
     opsocketwriteavg = round(sum(opsocketwrite)/len(opsocketwrite), 2)
     opsocketwritereadratio = round(opsocketwriteavg/opsocketreadavg,2)
 
-    	opl3missmaster = 0
+    opl3missmaster = 0
 	opl2missmaster = 0
 	opl3hitmaster = 0
 	opl2hitmaster = 0
