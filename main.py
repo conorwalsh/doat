@@ -943,7 +943,7 @@ if openabled is True and stepsenabled is True:
         opsocketx.append(optimex)
         optimex += teststepsize
 
-    plt.figure(9)
+    plt.figure(10)
     plt.plot(opsocketx, opsocketread, label="Read")
     plt.plot(opsocketx, opsocketwrite, label="Write")
     plt.xlabel("Time (Seconds)")
@@ -964,7 +964,7 @@ if openabled is True and stepsenabled is True:
                 str(opsocketwritereadratio) +\
                 "</p><p><a href='./tmp/pcm_op.csv' class='btn btn-info' role='button'>Download Full PCM CSV</a>"
 
-    opwallpdata = pandas.read_csv('tmp/opwallpower_op.csv', sep=',', low_memory=False)
+    opwallpdata = pandas.read_csv('tmp/wallpower_op.csv', sep=',', low_memory=False)
     opwallpdatapoints = opwallpdata.shape[0]*opwallpdata.shape[1]
     opwallpower = np.asarray(opwallpdata["power"].tolist()).astype(np.int)
     opwallpowertime = np.asarray(opwallpdata["time"].tolist()).astype(np.int)
@@ -974,11 +974,11 @@ if openabled is True and stepsenabled is True:
         opwallpowerx.append(x-opwallpowertimezero)
     opwallpoweravg = round(sum(opwallpower)/len(opwallpower), 1)
 
-    opwallpowerhtml = "<h2>Wall Power</h2><img src='./tmp/opwallpower_op.png'/><p>Wall Power Avg: " +\
+    opwallpowerhtml = "<h2>Wall Power</h2><img src='./tmp/wallpower_op.png'/><p>Wall Power Avg: " +\
                     str(opwallpoweravg) +\
-                    "Watts</p><p><a href='./tmp/opwallpower_op.csv' class='btn btn-info' role='button'>Download Power CSV</a>"
+                    "Watts</p><p><a href='./tmp/wallpower_op.csv' class='btn btn-info' role='button'>Download Power CSV</a>"
 
-    plt.figure(10)
+    plt.figure(11)
     plt.plot(opwallpowerx, opwallpower, label="Wall Power")
     plt.xlabel("Time (Seconds)")
     plt.ylabel("Power (Watts)")
@@ -990,7 +990,7 @@ if openabled is True and stepsenabled is True:
     plt.xlim(right=max(opwallpowerx))
     plt.savefig("./tmp/wallpower_op.png", bbox_inches="tight")
 
-    plt.figure(11)
+    plt.figure(12)
     for i, y in enumerate(opl3misscore):
         plt.plot(opsocketx, y, label="Core " + str(appcores[i]))
     if appmasterenabled is True:
@@ -1017,7 +1017,7 @@ if openabled is True and stepsenabled is True:
                       str(x) +\
                       "</p>"
 
-    plt.figure(12)
+    plt.figure(13)
     for i, y in enumerate(opl2misscore):
         plt.plot(opsocketx, y, label="Core "+str(appcores[i]))
     if appmasterenabled is True:
@@ -1044,7 +1044,7 @@ if openabled is True and stepsenabled is True:
                       str(x) +\
                       "</p>"
 
-    plt.figure(13)
+    plt.figure(14)
     for i, y in enumerate(opl3hitcore):
         plt.plot(opsocketx, y, label="Core " + str(appcores[i]))
     if appmasterenabled is True:
@@ -1071,7 +1071,7 @@ if openabled is True and stepsenabled is True:
                      str(x) +\
                      "%</p>"
 
-    plt.figure(14)
+    plt.figure(15)
     for i, y in enumerate(opl2hitcore):
         plt.plot(opsocketx, y, label="Core "+str(appcores[i]))
     if appmasterenabled is True:
@@ -1145,7 +1145,7 @@ if openabled is True and stepsenabled is True:
             print("ERROR: TX Packets were dropped during this test (tx_dropped: "+str(optelemtxdropped)+")")
             optelemtxdroppedbool = True
 
-        plt.figure(15)
+        plt.figure(16)
         x = np.arange(optelempktdist.size)
         plt.bar(x, height=optelempktdist)
         plt.xticks(x, optelempktsizes, rotation=45)
@@ -1170,7 +1170,7 @@ if openabled is True and stepsenabled is True:
 
         optelempktsresetmax = max(optelempktsreset)
 
-        plt.figure(16)
+        plt.figure(17)
         fig, ax1 = plt.subplots()
         ax2 = ax1.twinx()
         ax1.plot(optelemtime, optelemgbytes, alpha=1, label="Data Transfered")
@@ -1213,7 +1213,7 @@ if openabled is True and stepsenabled is True:
 
         optelemthroughputavg = np.round(np.mean(optelemthroughput),2)
 
-        plt.figure(17)
+        plt.figure(18)
         fig, ax1 = plt.subplots()
         ax2 = ax1.twinx()
         ax1.plot(optelemtime, optelemthroughput, alpha=1, label="Throughput")
@@ -1256,13 +1256,14 @@ if openabled is True and stepsenabled is True:
     else:
         optelemhtml += "<h2>Telemetry</h2><p style='color:red'>Telemetry is disabled</p>"
         
-    ophtml =     "<div class='row' style='page-break-after: always;'>" + opmembwhtml + "</div>" +
-                "<div class='row' style='page-break-after: always;'>" + opwallpowerhtml + "</div>" +
-                "<div class='row' style='page-break-after: always;'>" + opl3misshtml + "</div>" +
-                "<div class='row' style='page-break-after: always;'>" + opl3hithtml + "</div>" +
-                "<div class='row' style='page-break-after: always;'>" + opl2misshtml + "</div>" +
-                "<div class='row' style='page-break-after: always;'>" + opl2hithtml + "</div>" +
-                "<div class='row'>" + optelemhtml + "</div>"
+    ophtml = "<div class='row' style='page-break-after: always;'>" + opmembwhtml + "</div>" +\
+             "<div class='row' style='page-break-after: always;'>" + opwallpowerhtml + "</div>" +\
+             "<div class='row' style='page-break-after: always;'>" + opl3misshtml + "</div>" +\
+             "<div class='row' style='page-break-after: always;'>" + opl3hithtml + "</div>" +\
+             "<div class='row' style='page-break-after: always;'>" + opl2misshtml + "</div>" +\
+             "<div class='row' style='page-break-after: always;'>" + opl2hithtml + "</div>" +\
+             "<div class='row'>" + optelemhtml + "</div>"
+
     opdatapoints = oppcmdatapoints + opwallpdatapoints + optelemdatapoints
 
     print("\nSetting DPDK Configuration back to original")
