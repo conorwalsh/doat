@@ -1262,7 +1262,8 @@ if openabled is True and stepsenabled is True:
 				"<div class='row' style='page-break-after: always;'>" + opl3hithtml + "</div>" +
 				"<div class='row' style='page-break-after: always;'>" + opl2misshtml + "</div>" +
 				"<div class='row' style='page-break-after: always;'>" + opl2hithtml + "</div>" +
-				"<div class='row'>" + optelemhtml + "</div>" +
+				"<div class='row'>" + optelemhtml + "</div>"
+	opdatapoints = oppcmdatapoints + opwallpdatapoints + optelemdatapoints
 
     print("\nSetting DPDK Configuration back to original")
     for  line in fileinput.FileInput(rtesdk+"/config/common_base", inplace=1):
@@ -1301,7 +1302,7 @@ elif stepsenabled is False:
 
 print("\nGenerating report")
 
-datapoints = pcmdatapoints+wallpdatapoints+telemdatapoints
+datapoints = pcmdatapoints+wallpdatapoints+telemdatapoints+opdatapoints
 
 reporttime1 = strftime("%I:%M%p on %d %B %Y", gmtime())
 reporttime2 = strftime("%I:%M%p %d/%m/%Y", gmtime())
