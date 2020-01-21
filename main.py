@@ -219,7 +219,7 @@ cpuafforig = subprocess.check_output("taskset -cp " +
                                      str(os.getpid()),
                                      shell=True).decode(sys.stdout.encoding).rstrip().split(':', 1)[-1].strip()
 
-print("Original CPU Affinity:" + cpuafforig)
+print("Original CPU Affinity: " + cpuafforig)
 
 subprocess.call("taskset -cp " +
                 str(testcore) + " " +
@@ -895,8 +895,7 @@ if openabled is True and stepsenabled is True:
     opsocketwriteavg = round(sum(opsocketwrite)/len(opsocketwrite), 2)
     opsocketwritereadratio = round(opsocketwriteavg/opsocketreadavg,2)
 
-    print("Normal Read:",str(socketreadavg),"- Optimised Read:",str(opsocketreadavg))
-    print("Normal Write:",str(socketwriteavg),"- Optimised Write:",str(opsocketwriteavg))
+    
 
     print("\nSetting DPDK Configuration back to original")
     for  line in fileinput.FileInput(rtesdk+"/config/common_base", inplace=1):
