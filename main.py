@@ -15,6 +15,8 @@ from json2html import *
 import re
 import string
 import fileinput
+from datetime import datetime
+import time
 
 # Print startup message
 doat_motd()
@@ -213,6 +215,12 @@ else:
 if not os.path.exists("tmp"):
     os.makedirs('tmp')
 
+cpuafforig = subprocess.check_output("taskset -cp " +
+                                     str(os.getpid()),
+                                     shell=True).decode(sys.stdout.encoding).rstrip().split(':', 1)[-1].strip()
+
+print("Original CPU Affinity:" + cpuafforig)
+
 subprocess.call("taskset -cp " +
                 str(testcore) + " " +
                 str(os.getpid()),
@@ -220,7 +228,7 @@ subprocess.call("taskset -cp " +
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL)
 
-print("Test pinned to core",
+print("DOAT pinned to core",
       testcore,
       "PID:",
       os.getpid())
@@ -316,9 +324,9 @@ progress_bar(testruntime)
 
 appdiedduringtest = False
 if proc.poll() is None:
-    print("SUCCESS: Test process is still alive after test")
+    print("SUCCESS: DPDK App is still alive after test")
 else:
-    print("ERROR: Test process died during test")
+    print("ERROR: DPDK App died during test")
     appdiedduringtest = True
 
 print("Killing test processes")
@@ -739,14 +747,156 @@ if openabled is True and stepsenabled is True:
         else:
             sys.stdout.write(line)
     
-    print("Rebuilding DPDK and DPDK App with new configuration options (This can take several minutes)")
-    #subprocess.call("cd "+rtesdk"; "+dpdkmakecmd+"; cd "+applocation+"; "+appmakecmd+";",
-    #                shell=True,
-    #                stdout=subprocess.DEVNULL,
-    #                stderr=subprocess.DEVNULL)
+    subprocess.call("taskset -cp " +
+                    cpuafforig + " " +
+                    str(os.getpid()),
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL)
+    print("DOAT unpinned from core to speed up build")
+    
+    print("Building DPDK and DPDK App with new configuration options (This can take several minutes)")
+    dpdkbuild = subprocess.Popen("cd "+rtesdk+"; "+dpdkmakecmd+"; cd "+applocation+"; "+appmakecmd+";",
+                                 shell=True,
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+
+    animation = "|/-\\"
+    idx = 0
+    buildtime = 0.0
+    while dpdkbuild.poll() is None:
+        m, s = divmod(int(buildtime), 60)
+        print('Building . . .',f'{m:02d}:{s:02d}',animation[idx % len(animation)], end="\r")
+        idx += 1
+        buildtime += 0.1
+        time.sleep(0.1)
+
+    subprocess.call("taskset -cp " +
+                    str(testcore) + " " +
+                    str(os.getpid()),
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL)
+    print("DOAT pinned to core",
+          testcore,
+          "PID:",
+          os.getpid())
 
     print("\nAnalysing Modified DPDK App")
-         
+    print("Starting DPDK App")
+    
+    opproc = subprocess.Popen(applocation+appcmd,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.STDOUT,
+                            shell=True,
+                            preexec_fn=os.setsid)
+    optestpid = opproc.pid
+
+    if check_pid(optestpid):
+        print("DPDK App started successfully")
+    else:
+        sys.exit("DPDK App failed to start, ABORT!")
+
+    print("Allow application to startup and settle . . .")
+    progress_bar(startuptime)
+
+    if opproc.poll() is not None:
+        sys.exit("DPDK App died or failed to start, ABORT!")
+    else:
+        print("DPDK App ready for tests, PID: ",
+              testpid)
+
+    print('Starting Measurements . . .')
+
+    oppcm = subprocess.Popen(pcmdir+'pcm.x '+str(teststepsize)+' -csv=tmp/pcm_op.csv',
+                             stdout=subprocess.DEVNULL,
+                             stderr=subprocess.STDOUT,
+                             shell=True,
+                             preexec_fn=os.setsid)
+
+    opwallp = subprocess.Popen("echo 'power,time\n' > tmp/wallpower_op.csv; while true; do ipmitool sdr | grep 'PS1 Input Power' | cut -c 20- | cut -f1 -d 'W' | tr -d '\n' | sed 's/.$//' >> tmp/wallpower_op.csv; echo -n ',' >> tmp/wallpower_op.csv; date +%s >> tmp/wallpower_op.csv; sleep "+str(teststepsize)+"; done",
+                             stdout=subprocess.DEVNULL,
+                             stderr=subprocess.STDOUT,
+                             shell=True,
+                             preexec_fn=os.setsid)
+
+    if telemetryenabled is True:
+        optelem = subprocess.Popen('./tools/dpdk-telemetry-auto-csv.py '+socketpath+' tmp/telemetry_op.csv '+str(testruntime+2)+' '+str(teststepsize),
+                                   stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.STDOUT,
+                                   shell=True,
+                                   preexec_fn=os.setsid)
+
+    progress_bar(2)
+
+    if opwallp.poll() is not None:
+        kill_group_pid(oppcm.pid)
+        kill_group_pid(opproc.pid)
+        if telemetryenabled is True:
+            kill_group_pid(optelem.pid)
+        sys.exit("IPMItool died or failed to start, ABORT!")
+
+    if oppcm.poll() is not None:
+        kill_group_pid(opwallp.pid)
+        kill_group_pid(opproc.pid)
+        if telemetryenabled is True:
+            kill_group_pid(optelem.pid)
+        sys.exit("PCM died or failed to start, ABORT! (If problem persists, try to execute 'modprobe msr' as root user)")
+
+    if telemetryenabled is True:
+        if optelem.poll() is not None:
+            kill_group_pid(oppcm.pid)
+            kill_group_pid(opwallp.pid)
+            kill_group_pid(opproc.pid)
+            sys.exit("Telemetry died or failed to start, ABORT!")
+
+    print("Running Test . . .")
+    progress_bar(testruntime)
+
+    opappdiedduringtest = False
+    if opproc.poll() is None:
+        print("SUCCESS: DPDK App is still alive after test")
+    else:
+        print("ERROR: DPDK App died during test")
+        opappdiedduringtest = True
+
+    print("Killing test processes")
+
+    kill_group_pid(optestpid)
+
+    kill_group_pid(oppcm.pid)
+
+    kill_group_pid(opwallp.pid)
+
+    if telemetryenabled is True:
+        kill_group_pid(optelem.pid)
+
+    if opappdiedduringtest is True:
+        sys.exit("Test invalid due to DPDK App dying during test, ABORT!")
+
+    f = open('tmp/pcm_op.csv', 'r')
+    opfiledata = f.read()
+    f.close()
+
+    opnewdata = opfiledata.replace(";", ",")
+
+    f = open('tmp/pcm_op.csv', 'w')
+    f.write(opnewdata)
+    f.close()
+
+    oppcmdata = pandas.read_csv('tmp/pcm_op.csv', low_memory=False)
+
+    oppcmdatapoints = oppcmdata.shape[0]*oppcmdata.shape[1]
+
+    opsocketread = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc("Socket"+str(appsocket))+13].tolist())[1:]).astype(np.float) * 1000
+    opsocketwrite = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc("Socket"+str(appsocket))+14].tolist())[1:]).astype(np.float) * 1000
+
+    opsocketreadavg = round(sum(opsocketread)/len(opsocketread), 2)
+    opsocketwriteavg = round(sum(opsocketwrite)/len(opsocketwrite), 2)
+    opsocketwritereadratio = round(opsocketwriteavg/opsocketreadavg,2)
+
+    print("Normal Read:",str(socketreadavg),"- Optimised Read:",str(opsocketreadavg))
+    print("Normal Write:",str(socketwriteavg),"- Optimised Write:",str(opsocketwriteavg))
 
     print("\nSetting DPDK Configuration back to original")
     for  line in fileinput.FileInput(rtesdk+"/config/common_base", inplace=1):
@@ -755,13 +905,33 @@ if openabled is True and stepsenabled is True:
         else:
             sys.stdout.write(line)
     
+    subprocess.call("taskset -cp " +
+                    cpuafforig + " " +
+                    str(os.getpid()),
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL)
+    print("DOAT unpinned from core to speed up build")
+
     print("Rebuilding DPDK and DPDK App with original configuration options (This can take several minutes)")
-    #subprocess.call("cd "+rtesdk"; "+dpdkmakecmd+"; cd "+applocation+"; "+appmakecmd+";",
-    #                shell=True,
-    #                stdout=subprocess.DEVNULL,
-    #                stderr=subprocess.DEVNULL)
+    dpdkrebuild = subprocess.Popen("cd "+rtesdk+"; "+dpdkmakecmd+"; cd "+applocation+"; "+appmakecmd+";",
+                                   shell=True,
+                                   stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL)
+    animation = "|/-\\"
+    idx = 0
+    buildtime = 0.0
+    while dpdkrebuild.poll() is None:
+        m, s = divmod(int(buildtime), 60)
+        print('Building . . .',f'{m:02d}:{s:02d}',animation[idx % len(animation)], end="\r")
+        idx += 1
+        buildtime += 0.1
+        time.sleep(0.1)
+
+
+
 elif stepsenabled is False:
-    print("\n No Optimisation Steps are enabled skipping optimisation")
+    print("\nNo Optimisation Steps are enabled skipping optimisation")
 
 print("\nGenerating report")
 
@@ -776,10 +946,17 @@ if projectname is not None and projectname is not "":
 if testername is not None and testeremail is not None and testername is not "" and testeremail is not "":
     projectdetailshtml += "<p style='font-size: 18px;'>Tester: " + testername + " ("+testeremail+")</p>"
 
+testheader1 = ""
+testheader2 = ""
+if openabled is True:
+    testheader1 = "<div class='row'><h1 style='font-weight:bold;'>Original DPDK App</h1></div>"
+    testheader2 = "<div class='row'><h1 style='font-weight:bold;'>Modified DPDK App</h1></div>"
+
 indexfile = open("index.html", "w")
 indexfile.write("<html><head><title>DOAT Report</title><link rel='stylesheet' href='./webcomponents/bootstrap.341.min.css'><script src='./webcomponents/jquery.341.min.js'></script><script src='./webcomponents/bootstrap.341.min.js'></script><style>@media print{a{display:none!important}img{width:100%!important}}</style></head><body><div class='jumbotron text-center'><h1>DOAT Report</h1><p style='font-size: 14px'>DPDK Optimisation & Analysis Tool</p><p>Report compiled at "+reporttime1+" using "+str(format(datapoints,","))+" data points</p>" + 
                 projectdetailshtml +
                 "</div><div class='container'>" +
+                testheader1 +
                 "<div class='row' style='page-break-after: always;'>" + membwhtml + "</div>" +
                 "<div class='row' style='page-break-after: always;'>" + wallpowerhtml + "</div>" +
                 "<div class='row' style='page-break-after: always;'>" + l3misshtml + "</div>" +
@@ -787,6 +964,8 @@ indexfile.write("<html><head><title>DOAT Report</title><link rel='stylesheet' hr
                 "<div class='row' style='page-break-after: always;'>" + l2misshtml + "</div>" +
                 "<div class='row' style='page-break-after: always;'>" + l2hithtml + "</div>" +
                 "<div class='row'>" + telemhtml + "</div>" +
+                testheader2 +
+                ophtml +
                 "<div class='row'><h2>Test Configuration</h2>"+((json2html.convert(json = (str({section: dict(config[section]) for section in config.sections()})).replace("\'", "\""))).replace("border=\"1\"", "")).replace("table", "table class=\"table\"", 1) + "</div>" +
                 "<div class='row' style='page-break-after: always;'>" + reporthtml + "</div>" +
                 "</div></body></html>")
