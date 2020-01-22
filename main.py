@@ -178,6 +178,10 @@ else:
     appmasterenabled = False
     print("DPDK app has no master core")
 
+if config['REPORTING'].getboolean('includemaster') is False:
+    appmasterenabled = False
+    print("DPDK app master core will not be included in reports")
+
 appcores = [int(e) for e in (config['CPU']['appcores']).split(",")]
 appcoresno = len(appcores)
 if appcores is not None:
@@ -473,6 +477,7 @@ plt.legend()
 plt.ylim(bottom=0)
 plt.xlim(left=0)
 plt.xlim(right=max(socketx))
+#plt.yscale('log')
 plt.savefig("./tmp/l3miss.png", bbox_inches="tight")
 l3misshtml = "<h2>L3 Cache</h2><img src='./tmp/l3miss.png'/>"
 if appmasterenabled is True:
@@ -500,6 +505,7 @@ plt.legend()
 plt.ylim(bottom=0)
 plt.xlim(left=0)
 plt.xlim(right=max(socketx))
+#plt.yscale('log')
 plt.savefig("./tmp/l2miss.png", bbox_inches="tight")
 l2misshtml = "<h2>L2 Cache</h2><img src='./tmp/l2miss.png'/>"
 if appmasterenabled is True:
@@ -777,7 +783,7 @@ if openabled is True and stepsenabled is True:
                     shell=True,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL)
-    print("DOAT pinned to core",
+    print("\nDOAT pinned to core",
           testcore,
           "PID:",
           os.getpid())
@@ -895,23 +901,34 @@ if openabled is True and stepsenabled is True:
     opsocketwriteavg = round(sum(opsocketwrite)/len(opsocketwrite), 2)
     opsocketwritereadratio = round(opsocketwriteavg/opsocketreadavg,2)
 
+    opsocketreadavgdiff=round((((opsocketreadavg-socketreadavg)/socketreadavg)*100),1)
+    opsocketwriteavgdiff=round((((opsocketwriteavg-socketwriteavg)/socketwriteavg)*100),1)
+
     opl3missmaster = 0
     opl2missmaster = 0
     opl3hitmaster = 0
     opl2hitmaster = 0
     opl3missmasteravg = 0.0
+    opl3missmasteravgdiff = 0.0
     opl2missmasteravg = 0.0
+    opl2missmasteravgdiff = 0.0
     opl3hitmasteravg = 0.0
+    opl3hitmasteravgdiff = 0.0
     opl2hitmasteravg = 0.0
+    opl2hitmasteravgdiff = 0.0
     if appmasterenabled is True:
         opl3missmaster = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc("Core"+str(appmaster)+" (Socket "+str(appsocket)+")")+4].tolist())[1:]).astype(np.float)*1000*1000
         opl2missmaster = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc("Core"+str(appmaster)+" (Socket "+str(appsocket)+")")+5].tolist())[1:]).astype(np.float)*1000*1000
         opl3hitmaster = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc("Core"+str(appmaster)+" (Socket "+str(appsocket)+")")+6].tolist())[1:]).astype(np.float)*100
         opl2hitmaster = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc("Core"+str(appmaster)+" (Socket "+str(appsocket)+")")+7].tolist())[1:]).astype(np.float)*100
         opl3missmasteravg = round(sum(opl3missmaster)/len(opl3missmaster), 1)
+        opl3missmasteravgdiff = round((((opl3missmasteravg-l3missmasteravg)/l3missmasteravg)*100),1)
         opl2missmasteravg = round(sum(opl2missmaster)/len(opl2missmaster), 1)
+        opl2missmasteravgdiff = round((((opl2missmasteravg-l2missmasteravg)/l2missmasteravg)*100),1)
         opl3hitmasteravg = round(sum(opl3hitmaster)/len(opl3hitmaster), 1)
+        opl3hitmasteravgdiff = round(opl3hitmasteravg-l3hitmasteravg,1)
         opl2hitmasteravg = round(sum(opl2hitmaster)/len(opl2hitmaster), 1)
+        opl2hitmasteravgdiff = round(opl2hitmasteravg-l2hitmasteravg,1)
 
     opl3misscore = []
     opl2misscore = []
@@ -925,17 +942,29 @@ if openabled is True and stepsenabled is True:
         opl2hitcore.append(np.asarray((oppcmdata.iloc[:,oppcmdata.columns.get_loc("Core"+str(x)+" (Socket "+str(appsocket)+")")+7].tolist())[1:]).astype(np.float)*100)
 
     opl3misscoreavg = []
+    opl3misscoreavgdiff = []
     opl2misscoreavg = []
+    opl2misscoreavgdiff = []
     opl3hitcoreavg = []
+    opl3hitcoreavgdiff = []
     opl2hitcoreavg = []
-    for x in opl3misscore:
-        opl3misscoreavg.append(round(sum(x)/len(x), 1))
-    for x in opl2misscore:
-        opl2misscoreavg.append(round(sum(x)/len(x), 1))
-    for x in opl3hitcore:
-        opl3hitcoreavg.append(round(sum(x)/len(x), 1))
-    for x in opl2hitcore:
-        opl2hitcoreavg.append(round(sum(x)/len(x), 1))
+    opl2hitcoreavgdiff = []
+    for i, x in enumerate(opl3misscore):
+        misses = round(sum(x)/len(x), 1)
+        opl3misscoreavg.append(misses)
+        opl3misscoreavgdiff.append(round((((misses-l3misscoreavg[i])/l3misscoreavg[i])*100),1))
+    for i, x in enumerate(opl2misscore):
+        misses = round(sum(x)/len(x), 1)
+        opl2misscoreavg.append(misses)
+        opl2misscoreavgdiff.append(round((((misses-l2misscoreavg[i])/l2misscoreavg[i])*100),1))
+    for i, x in enumerate(opl3hitcore):
+        hits = round(sum(x)/len(x), 1)
+        opl3hitcoreavg.append(hits)
+        opl3hitcoreavgdiff.append(round(hits-l3hitcoreavg[i],1))
+    for i, x in  enumerate(opl2hitcore):
+        hits = round(sum(x)/len(x), 1)
+        opl2hitcoreavg.append(hits)
+        opl2hitcoreavgdiff.append(round(hits-l2hitcoreavg[i],1))
 
     opsocketx = []
     optimex = 0
@@ -944,23 +973,25 @@ if openabled is True and stepsenabled is True:
         optimex += teststepsize
 
     plt.figure(10)
-    plt.plot(opsocketx, opsocketread, label="Read")
-    plt.plot(opsocketx, opsocketwrite, label="Write")
+    plt.plot(socketx, socketread, alpha=0.7, label="Original Read")
+    plt.plot(socketx, socketwrite, alpha=0.7, label="Original Write")
+    plt.plot(opsocketx, opsocketread, alpha=0.7, label="Modified Read")
+    plt.plot(opsocketx, opsocketwrite, alpha=0.7, label="Modified Write")
     plt.xlabel("Time (Seconds)")
     plt.ylabel("Bandwidth (MBps)")
     plt.title("Memory Bandwidth")
     plt.legend()
     plt.ylim(bottom=0)
     plt.xlim(left=0)
-    plt.ylim(top=(max(opsocketwrite)+100))
+    plt.ylim(top=(max(socketwrite)+100))
     plt.xlim(right=max(opsocketx))
     plt.savefig("./tmp/membw_op.png", bbox_inches="tight")
 
     opmembwhtml = "<h2>Memory Bandwidth</h2><img src='./tmp/membw_op.png'/><p>Read Avg: " +\
                 str(opsocketreadavg) +\
-                "MBps</p><p>Write Avg: " +\
+                "MBps ("+'{0:+0.1f}'.format(opsocketreadavgdiff)+"%)</p><p>Write Avg: " +\
                 str(opsocketwriteavg) +\
-                "MBps</p><p>Write to Read Ratio: " +\
+                "MBps ("+'{0:+0.1f}'.format(opsocketwriteavgdiff)+"%)</p><p>Write to Read Ratio: " +\
                 str(opsocketwritereadratio) +\
                 "</p><p><a href='./tmp/pcm_op.csv' class='btn btn-info' role='button'>Download Full PCM CSV</a>"
 
@@ -973,13 +1004,15 @@ if openabled is True and stepsenabled is True:
     for x in opwallpowertime:
         opwallpowerx.append(x-opwallpowertimezero)
     opwallpoweravg = round(sum(opwallpower)/len(opwallpower), 1)
+    opwallpoweravgdiff = round((((opwallpoweravg-wallpoweravg)/wallpoweravg)*100),1)
 
     opwallpowerhtml = "<h2>Wall Power</h2><img src='./tmp/wallpower_op.png'/><p>Wall Power Avg: " +\
                     str(opwallpoweravg) +\
-                    "Watts</p><p><a href='./tmp/wallpower_op.csv' class='btn btn-info' role='button'>Download Power CSV</a>"
+                    "Watts ("+'{0:+0.1f}'.format(opwallpoweravgdiff)+"%)</p><p><a href='./tmp/wallpower_op.csv' class='btn btn-info' role='button'>Download Power CSV</a>"
 
     plt.figure(11)
-    plt.plot(opwallpowerx, opwallpower, label="Wall Power")
+    plt.plot(wallpowerx, wallpower, alpha=0.7, label="Original Wall Power")
+    plt.plot(opwallpowerx, opwallpower, alpha=0.7, label="Modified Wall Power")
     plt.xlabel("Time (Seconds)")
     plt.ylabel("Power (Watts)")
     plt.title("Wall Power")
@@ -991,10 +1024,14 @@ if openabled is True and stepsenabled is True:
     plt.savefig("./tmp/wallpower_op.png", bbox_inches="tight")
 
     plt.figure(12)
-    for i, y in enumerate(opl3misscore):
-        plt.plot(opsocketx, y, label="Core " + str(appcores[i]))
+    for i, y in enumerate(l3misscore):
+        plt.plot(socketx, y, alpha=0.7, label="Original Core " + str(appcores[i]))
     if appmasterenabled is True:
-        plt.plot(opsocketx, opl3missmaster, alpha=0.5, label="Master Core ("+str(appmaster)+")")
+        plt.plot(socketx, l3missmaster, alpha=0.5, label="Original Master Core ("+str(appmaster)+")")
+    for i, y in enumerate(opl3misscore):
+        plt.plot(opsocketx, y,  alpha=0.7,label="Modified Core " + str(appcores[i]))
+    if appmasterenabled is True:
+        plt.plot(opsocketx, opl3missmaster, alpha=0.5, label="Modified Master Core ("+str(appmaster)+")")
     plt.xlabel("Time (Seconds)")
     plt.ylabel("L3 Miss Count")
     plt.title("L3 Cache Misses")
@@ -1002,6 +1039,7 @@ if openabled is True and stepsenabled is True:
     plt.ylim(bottom=0)
     plt.xlim(left=0)
     plt.xlim(right=max(opsocketx))
+    #plt.yscale('log')
     plt.savefig("./tmp/l3miss_op.png", bbox_inches="tight")
     opl3misshtml = "<h2>L3 Cache</h2><img src='./tmp/l3miss_op.png'/>"
     if appmasterenabled is True:
@@ -1009,19 +1047,23 @@ if openabled is True and stepsenabled is True:
                       str(appmaster) +\
                       ") L3 Misses: " +\
                       str(opl3missmasteravg) +\
-                      "</p>"
+                      " ("+'{0:+0.1f}'.format(opl3missmasteravgdiff)+"%)</p>"
     for i, x in enumerate(opl3misscoreavg):
         opl3misshtml += "<p>Core " +\
                       str(appcores[i]) +\
                       " L3 Misses: " +\
                       str(x) +\
-                      "</p>"
+                      " ("+'{0:+0.1f}'.format(opl3misscoreavgdiff[i])+"%)</p>"
 
     plt.figure(13)
-    for i, y in enumerate(opl2misscore):
-        plt.plot(opsocketx, y, label="Core "+str(appcores[i]))
+    for i, y in enumerate(l2misscore):
+        plt.plot(socketx, y, alpha=0.7, label="Original Core " + str(appcores[i]))
     if appmasterenabled is True:
-        plt.plot(opsocketx, opl2missmaster, alpha=0.5, label="Master Core ("+str(appmaster)+")")
+        plt.plot(socketx, l2missmaster, alpha=0.5, label="Original Master Core ("+str(appmaster)+")")
+    for i, y in enumerate(opl2misscore):
+        plt.plot(opsocketx, y, alpha=0.7, label="Modified Core "+str(appcores[i]))
+    if appmasterenabled is True:
+        plt.plot(opsocketx, opl2missmaster, alpha=0.5, label="Modified Master Core ("+str(appmaster)+")")
     plt.xlabel("Time (Seconds)")
     plt.ylabel("L2 Miss Count")
     plt.title("L2 Cache Misses")
@@ -1029,6 +1071,7 @@ if openabled is True and stepsenabled is True:
     plt.ylim(bottom=0)
     plt.xlim(left=0)
     plt.xlim(right=max(opsocketx))
+    #plt.yscale('log')
     plt.savefig("./tmp/l2miss_op.png", bbox_inches="tight")
     opl2misshtml = "<h2>L2 Cache</h2><img src='./tmp/l2miss_op.png'/>"
     if appmasterenabled is True:
@@ -1036,19 +1079,23 @@ if openabled is True and stepsenabled is True:
                       str(appmaster) +\
                       ") L2 Misses: " +\
                       str(opl3missmasteravg) +\
-                      "</p>"
+                      " ("+'{0:+0.1f}'.format(opl2missmasteravgdiff)+"%)</p>"
     for i, x in enumerate(opl2misscoreavg):
         opl2misshtml += "<p>Core " +\
                       str(appcores[i]) +\
                       " L2 Misses: " +\
                       str(x) +\
-                      "</p>"
+                      " ("+'{0:+0.1f}'.format(opl2misscoreavgdiff[i])+"%)</p>"
 
     plt.figure(14)
-    for i, y in enumerate(opl3hitcore):
-        plt.plot(opsocketx, y, label="Core " + str(appcores[i]))
+    for i, y in enumerate(l3hitcore):
+        plt.plot(socketx, y, alpha=0.7, label="Original Core " + str(appcores[i]))
     if appmasterenabled is True:
-        plt.plot(opsocketx, opl3hitmaster, alpha=0.5, label="Master Core ("+str(appmaster)+")")
+        plt.plot(socketx, l3hitmaster, alpha=0.5, label="Original Master Core ("+str(appmaster)+")")
+    for i, y in enumerate(opl3hitcore):
+        plt.plot(opsocketx, y, alpha=0.5, label="Modified Core " + str(appcores[i]))
+    if appmasterenabled is True:
+        plt.plot(opsocketx, opl3hitmaster, alpha=0.5, label="Modified Master Core ("+str(appmaster)+")")
     plt.xlabel("Time (Seconds)")
     plt.ylabel("L3 Hit (%)")
     plt.title("L3 Cache Hits")
@@ -1063,19 +1110,23 @@ if openabled is True and stepsenabled is True:
                      str(appmaster) +\
                      ") L3 Hits: " +\
                      str(opl3hitmasteravg) +\
-                     "%</p>"
+                     "% ("+'{0:+0.1f}'.format(opl3hitmasteravgdiff)+"%)</p>"
     for i, x in enumerate(opl3hitcoreavg):
         opl3hithtml += "<p>Core " +\
                      str(appcores[i]) +\
                      " L3 Hits: " +\
                      str(x) +\
-                     "%</p>"
+                     "% ("+'{0:+0.1f}'.format(opl3hitcoreavgdiff[i])+"%)</p>"
 
     plt.figure(15)
-    for i, y in enumerate(opl2hitcore):
-        plt.plot(opsocketx, y, label="Core "+str(appcores[i]))
+    for i, y in enumerate(l2hitcore):
+        plt.plot(socketx, y, alpha=0.7, label="Original Core "+str(appcores[i]))
     if appmasterenabled is True:
-        plt.plot(opsocketx, opl2hitmaster, alpha=0.5, label="Master Core ("+str(appmaster)+")")
+        plt.plot(socketx, l2hitmaster, alpha=0.5, label="Original Master Core ("+str(appmaster)+")")
+    for i, y in enumerate(opl2hitcore):
+        plt.plot(opsocketx, y, alpha=0.7, label="Modified Core "+str(appcores[i]))
+    if appmasterenabled is True:
+        plt.plot(opsocketx, opl2hitmaster, alpha=0.5, label="Modified Master Core ("+str(appmaster)+")")
     plt.xlabel("Time (Seconds)")
     plt.ylabel("L2 Hit (%)")
     plt.title("L2 Cache Hits")
@@ -1088,15 +1139,15 @@ if openabled is True and stepsenabled is True:
     if appmasterenabled is True:
         opl2hithtml += "<p>Master Core (" +\
                      str(appmaster) +\
-                     ") L3 Hits: " +\
+                     ") L2 Hits: " +\
                      str(opl2hitmasteravg) +\
-                     "%</p>"
+                     "% ("+'{0:+0.1f}'.format(opl2hitmasteravgdiff)+"%)</p>"
     for i, x in enumerate(opl2hitcoreavg):
         opl2hithtml += "<p>Core " +\
                      str(appcores[i]) +\
                      " L2 Hits: " +\
                      str(x) +\
-                     "%</p>"
+                     "% ("+'{0:+0.1f}'.format(opl2hitcoreavgdiff[i])+"%)</p>"
 
     optelemhtml = ""
     optelemdatapoints = 0
@@ -1123,12 +1174,16 @@ if openabled is True and stepsenabled is True:
                            "1024 to 1522",
                            "1523 to max"]
         optelemrxerrors = optelemdata.loc[:,"rx_errors"].tail(1).values[0]
+        optelemrxerrorsdiff = optelemrxerrors-telemrxerrors
         optelemrxerrorsbool = False
         optelemtxerrors = optelemdata.loc[:,"tx_errors"].tail(1).values[0]
+        optelemtxerrorsdiff = optelemtxerrors-telemtxerrors
         optelemtxerrorsbool = False
         optelemrxdropped = optelemdata.loc[:,"rx_dropped"].tail(1).values[0]
+        optelemrxdroppeddiff = optelemrxdropped-telemrxdropped
         optelemrxdroppedbool = False
         optelemtxdropped = optelemdata.loc[:,"tx_dropped"].tail(1).values[0]
+        optelemtxdroppeddiff = optelemtxdropped-telemtxdropped
         optelemtxdroppedbool = False
 
         if int(optelemrxerrors) is not 0:
@@ -1162,6 +1217,7 @@ if openabled is True and stepsenabled is True:
         optelemgbytes = [x / 1000000000 for x in optelembytesreset]
 
         optelemgbytesmax = np.round(max(optelemgbytes),1)
+        optelemgbytesmaxdiff = np.round(optelemgbytesmax-telemgbytesmax,1)
 
         optelempktszero = optelempkts[0]
         optelempktsreset = []
@@ -1169,6 +1225,7 @@ if openabled is True and stepsenabled is True:
             optelempktsreset.append(y-optelempktszero)
 
         optelempktsresetmax = max(optelempktsreset)
+        optelempktsresetmaxdiff = np.round(optelempktsresetmax-telempktsresetmax,1)
 
         plt.figure(17)
         fig, ax1 = plt.subplots()
@@ -1199,6 +1256,7 @@ if openabled is True and stepsenabled is True:
                 optelempktssec.append(0)
 
         optelempktsecavg = np.round(np.mean(optelempktssec),0)
+        optelempktsecavgdiff = np.round(optelempktsecavg-telempktsecavg,0)
 
         optelemthroughput = []
         for i, y in enumerate(optelembytesreset):
@@ -1212,12 +1270,15 @@ if openabled is True and stepsenabled is True:
                 optelemthroughput.append(0)
 
         optelemthroughputavg = np.round(np.mean(optelemthroughput),2)
+        optelemthroughputavgdiff = np.round(optelemthroughputavg-optelemthroughputavg,2)
 
         plt.figure(18)
         fig, ax1 = plt.subplots()
         ax2 = ax1.twinx()
-        ax1.plot(optelemtime, optelemthroughput, alpha=1, label="Throughput")
-        ax2.plot(optelemtime, optelempktssec, alpha=0.6, color='orange', label="Packets Per Second")
+        ax1.plot(telemtime, telemthroughput, alpha=0.7, label="Original Throughput")
+        ax1.plot(optelemtime, optelemthroughput, alpha=0.7, label="Modified Throughput")
+        ax2.plot(telemtime, telempktssec, alpha=0.7, color='red', label="Original Packets Per Second")
+        ax2.plot(optelemtime, optelempktssec, alpha=0.7, color='green', label="Modified Packets Per Second")
         ax1.set_xlabel('Time (Seconds)')
         ax1.set_ylabel('Throughput (Gbps)')
         ax2.set_ylabel('Packets Per Second (Packets)')
@@ -1225,44 +1286,63 @@ if openabled is True and stepsenabled is True:
         ax2.set_ylim(bottom=0)
         ax2.set_ylim(top=max(optelempktssec)+1000000)
         ax1.set_ylim(top=max(optelemthroughput)+1)
-        ax1.legend(loc=2)
-        ax2.legend(loc=1)
+        ax1.legend(loc=3)
+        ax2.legend(loc=4)
         plt.title("Transfer Speeds")
         plt.xlim(left=0)
         plt.xlim(right=max(optelemtime))
         plt.savefig("./tmp/speeds_op.png", bbox_inches="tight")
 
-        optelemhtml += "<h2>Telemetry</h2><img src='./tmp/pktdist_op.png'/><br/><img src='./tmp/transfer_op.png'/><p>Total Data Transfered: "+str(optelemgbytesmax)+"GB</p><p>Total Packets Transfered: "+str(format(optelempktsresetmax,","))+" packets</p><img src='./tmp/speeds.png'/><p>Average Throughput: "+str(optelemthroughputavg)+" Gbps</p><p>Average Packets Per Second: "+str(format(optelempktsecavg,","))+" pps</p>"
+        optelemhtml += "<h2>Telemetry</h2><img src='./tmp/pktdist_op.png'/><br/><img src='./tmp/transfer_op.png'/><p>Total Data Transfered: "+str(optelemgbytesmax)+"GB ("+'{0:+0.1f}'.format(optelemgbytesmaxdiff)+"GB)</p><p>Total Packets Transfered: "+str(format(optelempktsresetmax,","))+" packets ("+'{0:+0,.0f}'.format(optelempktsresetmaxdiff)+" packets)</p><img src='./tmp/speeds_op.png'/><p>Average Throughput: "+str(optelemthroughputavg)+" Gbps ("+'{0:+0.2f}'.format(optelemthroughputavgdiff)+"Gbps)</p><p>Average Packets Per Second: "+str(format(optelempktsecavg,","))+" pps ("+'{0:+0,.0f}'.format(optelempktsecavgdiff)+" pps)</p>"
 
         optelemhtml+="<p><a href='./tmp/telemetry_op.csv' class='btn btn-info' role='button'>Download Full Telemetry CSV</a></p><h2>Errors</h2>"
 
         if optelemrxerrorsbool is False:
-            optelemhtml+="<h3 style='color:green;font-weight:bold;'>RX Errors: "+str(optelemrxerrors)+"</h3>"
+            optelemhtml+="<h3 style='color:green;font-weight:bold;'>RX Errors: "+str(optelemrxerrors)+" ("+'{0:+0d}'.format(optelemrxerrorsdiff)+")</h3>"
         else:
-            optelemhtml+="<h3 style='color:red;font-weight:bold;'>RX Errors: "+str(optelemrxerrors)+"</h3>"
+            optelemhtml+="<h3 style='color:red;font-weight:bold;'>RX Errors: "+str(optelemrxerrors)+" ("+'{0:+0d}'.format(optelemrxerrorsdiff)+")</h3>"
         if optelemtxerrorsbool is False:
-            optelemhtml+="<h3 style='color:green;font-weight:bold;'>TX Errors: "+str(optelemtxerrors)+"</h3>"
+            optelemhtml+="<h3 style='color:green;font-weight:bold;'>TX Errors: "+str(optelemtxerrors)+" ("+'{0:+0d}'.format(optelemtxerrorsdiff)+")</h3>"
         else:
-            optelemhtml+="<h3 style='color:red;font-weight:bold;'>TX Errors: "+str(optelemtxerrors)+"</h3>"
+            optelemhtml+="<h3 style='color:red;font-weight:bold;'>TX Errors: "+str(optelemtxerrors)+" ("+'{0:+0d}'.format(optelemtxerrorsdiff)+")</h3>"
 
         if optelemrxdroppedbool is False:
-            optelemhtml+="<h3 style='color:green;font-weight:bold;'>RX Dropped Packets: "+str(optelemrxdropped)+"</h3>"
+            optelemhtml+="<h3 style='color:green;font-weight:bold;'>RX Dropped Packets: "+str(optelemrxdropped)+" ("+'{0:+0d}'.format(optelemrxdroppeddiff)+")</h3>"
         else:
-            optelemhtml+="<h3 style='color:red;font-weight:bold;'>RX Dropped Packets: "+str(optelemrxdropped)+"</h3>"
+            optelemhtml+="<h3 style='color:red;font-weight:bold;'>RX Dropped Packets: "+str(optelemrxdropped)+" ("+'{0:+0d}'.format(optelemrxdroppeddiff)+")</h3>"
         if optelemtxdroppedbool is False:
-            optelemhtml+="<h3 style='color:green;font-weight:bold;'>TX Dropped Packets: "+str(optelemtxdropped)+"</h3>"
+            optelemhtml+="<h3 style='color:green;font-weight:bold;'>TX Dropped Packets: "+str(optelemtxdropped)+" ("+'{0:+0d}'.format(optelemtxdroppeddiff)+")</h3>"
         else:
-            optelemhtml+="<h3 style='color:red;font-weight:bold;'>TX Dropped Packets: "+str(optelemtxdropped)+"</h3>"
+            optelemhtml+="<h3 style='color:red;font-weight:bold;'>TX Dropped Packets: "+str(optelemtxdropped)+" ("+'{0:+0d}'.format(optelemtxdroppeddiff)+")</h3>"
     else:
         optelemhtml += "<h2>Telemetry</h2><p style='color:red'>Telemetry is disabled</p>"
-        
+       
+    oprechtml = "<h2>Optimisation Recommendations</h2>"
+
+    if (opsocketreadavgdiff<-25.0) and (opsocketwriteavgdiff<-25.0) and (abs(optelemthroughputavgdiff)<0.2) and optelemrxdropped <=0 and optelemtxdropped <= 0:
+        oprechtml += "<p>We would recommend changing from ring mempools to stack mempools based on the optimisation results</p><p>This can be done by setting CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS=\"stack\" in the DPDK common_base file</p>"
+    else:
+        oprechtml += "<p>We would not recommend changing from ring mempools to stack mempools based on the optimisation results</p>"
+
+    if (opsocketreadavgdiff<-25.0):
+        print("opsocketreadavgdiff<-25.0")
+    if (opsocketwriteavgdiff<-25.0):
+        print("opsocketwriteavgdiff<-25.0")
+    if (abs(optelemthroughputavgdiff)<0.2):
+        print("(abs(optelemthroughputavgdiff)<0.2)")
+    if optelemrxdropped is 0:
+        print("optelemrxdropped is 0")
+    if optelemtxdropped is 0:
+        print("optelemtxdropped is 0")
+
     ophtml = "<div class='row' style='page-break-after: always;'>" + opmembwhtml + "</div>" +\
              "<div class='row' style='page-break-after: always;'>" + opwallpowerhtml + "</div>" +\
              "<div class='row' style='page-break-after: always;'>" + opl3misshtml + "</div>" +\
              "<div class='row' style='page-break-after: always;'>" + opl3hithtml + "</div>" +\
              "<div class='row' style='page-break-after: always;'>" + opl2misshtml + "</div>" +\
              "<div class='row' style='page-break-after: always;'>" + opl2hithtml + "</div>" +\
-             "<div class='row'>" + optelemhtml + "</div>"
+             "<div class='row' style='page-break-after: always;'>" + optelemhtml + "</div>" +\
+             "<div class='row'>" + oprechtml + "</div>"
 
     opdatapoints = oppcmdatapoints + opwallpdatapoints + optelemdatapoints
 
@@ -1301,7 +1381,7 @@ if openabled is True and stepsenabled is True:
 elif stepsenabled is False:
     print("\nNo Optimisation Steps are enabled skipping optimisation")
 
-print("\nGenerating report")
+print("\n\nGenerating report")
 
 datapoints = pcmdatapoints+wallpdatapoints+telemdatapoints+opdatapoints
 
