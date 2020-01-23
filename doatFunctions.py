@@ -16,7 +16,8 @@ def check_pid(pid):
 
 def doat_motd():
     print("         _____   ____       _______ \n        |  __ \ / __ \   /\|__   __|\n        | |  | | |  | | /  \  | |   \n        | |  | | |  | |/ /\ \ | |   \n        | |__| | |__| / ____ \| |   \n        |_____/ \____/_/    \_\_|   \n                                \n   DPDK Optimisation and Analysis Tool\n            Conor Walsh 2019\n")
-
+    print("         Proof of Concept Version\n         Not for production use\n             DO NOT DEPLOY!\n")
+    
 def sys_check():
     if "RTE_SDK" not in os.environ:
         sys.exit("RTE_SDK has not been set, ABORT!")
