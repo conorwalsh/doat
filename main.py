@@ -473,18 +473,23 @@ f = open('tmp/pcm.csv', 'w')
 f.write(newdata)
 f.close()
 
-
+# Read the PCM CSV using pandas
 pcmdata = pandas.read_csv('tmp/pcm.csv', low_memory=False)
 
+# Calculate how many datapoints are in the PCM CSV
 pcmdatapoints = pcmdata.shape[0]*pcmdata.shape[1]
 
+# Extract socket memory bandwidth read and write to numpy arrays
 socketread = np.asarray((pcmdata.iloc[:, pcmdata.columns.get_loc("Socket"+str(appsocket))+13].tolist())[1:]).astype(np.float) * 1000
 socketwrite = np.asarray((pcmdata.iloc[:, pcmdata.columns.get_loc("Socket"+str(appsocket))+14].tolist())[1:]).astype(np.float) * 1000
 
+# Calculate the average read and write of the memory bandwidth
 socketreadavg = round(sum(socketread)/len(socketread), 2)
 socketwriteavg = round(sum(socketwrite)/len(socketwrite), 2)
+# Calculate the ratio of reads to writes
 socketwritereadratio = round(socketwriteavg/socketreadavg,2)
 
+# Declare varibles to store cache info for the master core
 l3missmaster = 0
 l2missmaster = 0
 l3hitmaster = 0
@@ -493,6 +498,7 @@ l3missmasteravg = 0.0
 l2missmasteravg = 0.0
 l3hitmasteravg = 0.0
 l2hitmasteravg = 0.0
+# If the master core stats are enabled extract the data using pandas
 if appmasterenabled is True:
     l3missmaster = np.asarray((pcmdata.iloc[:, pcmdata.columns.get_loc("Core"+str(appmaster)+" (Socket "+str(appsocket)+")")+4].tolist())[1:]).astype(np.float)*1000*1000
     l2missmaster = np.asarray((pcmdata.iloc[:, pcmdata.columns.get_loc("Core"+str(appmaster)+" (Socket "+str(appsocket)+")")+5].tolist())[1:]).astype(np.float)*1000*1000
@@ -503,21 +509,24 @@ if appmasterenabled is True:
     l3hitmasteravg = round(sum(l3hitmaster)/len(l3hitmaster), 1)
     l2hitmasteravg = round(sum(l2hitmaster)/len(l2hitmaster), 1)
 
+# Declare arrays to store cache info for cores
 l3misscore = []
 l2misscore = []
 l3hitcore = []
 l2hitcore = []
-
+# Extract cache data for cores
 for x in appcores:
     l3misscore.append(np.asarray((pcmdata.iloc[:,pcmdata.columns.get_loc("Core"+str(x)+" (Socket "+str(appsocket)+")")+4].tolist())[1:]).astype(np.float)*1000*1000)
     l2misscore.append(np.asarray((pcmdata.iloc[:,pcmdata.columns.get_loc("Core"+str(x)+" (Socket "+str(appsocket)+")")+5].tolist())[1:]).astype(np.float)*1000*1000)
     l3hitcore.append(np.asarray((pcmdata.iloc[:,pcmdata.columns.get_loc("Core"+str(x)+" (Socket "+str(appsocket)+")")+6].tolist())[1:]).astype(np.float)*100)
     l2hitcore.append(np.asarray((pcmdata.iloc[:,pcmdata.columns.get_loc("Core"+str(x)+" (Socket "+str(appsocket)+")")+7].tolist())[1:]).astype(np.float)*100)
 
+# Declare arrays to store average cache info for cores
 l3misscoreavg = []
 l2misscoreavg = []
 l3hitcoreavg = []
 l2hitcoreavg = []
+# Calculate average cache data for cores
 for x in l3misscore:
     l3misscoreavg.append(round(sum(x)/len(x), 1))
 for x in l2misscore:
@@ -527,25 +536,36 @@ for x in l3hitcore:
 for x in l2hitcore:
     l2hitcoreavg.append(round(sum(x)/len(x), 1))
 
+# Create a corresponding time array for the memory bandwidth arrays
 socketx = []
 timex = 0
 for x in socketread:
     socketx.append(timex)
     timex += teststepsize
 
+# Generate the read and write memory bandwidth figure
+# Each figure must have a unique number
 plt.figure(0)
+# Plot the figure
 plt.plot(socketx, socketread, label="Read")
 plt.plot(socketx, socketwrite, label="Write")
+# Label the x and y axis
 plt.xlabel("Time (Seconds)")
 plt.ylabel("Bandwidth (MBps)")
+# Title the figure
 plt.title("Memory Bandwidth")
+# Enable the legend for the figure
 plt.legend()
+# Set lower x and y limit
 plt.ylim(bottom=0)
 plt.xlim(left=0)
+# Set upper x and y limit
 plt.ylim(top=(max(socketwrite)+100))
 plt.xlim(right=max(socketx))
+# Save the figure in the tmp dir
 plt.savefig("./tmp/membw.png", bbox_inches="tight")
 
+# Generate the memory bandwidth html code for the report
 membwhtml = "<h2>Memory Bandwidth</h2><img src='./tmp/membw.png'/><p>Read Avg: " +\
             str(socketreadavg) +\
             "MBps</p><p>Write Avg: " +\
@@ -554,20 +574,28 @@ membwhtml = "<h2>Memory Bandwidth</h2><img src='./tmp/membw.png'/><p>Read Avg: "
             str(socketwritereadratio) +\
             "</p><p><a href='./tmp/pcm.csv' class='btn btn-info' role='button'>Download Full PCM CSV</a>"
 
+# Read the IPMItool CSV using pandas
 wallpdata = pandas.read_csv('tmp/wallpower.csv', sep=',', low_memory=False)
+# Calculate how many datapoints are in the IPMItool CSV
 wallpdatapoints = wallpdata.shape[0]*wallpdata.shape[1]
+# Extract the power data from the CSV
 wallpower = np.asarray(wallpdata["power"].tolist()).astype(np.int)
+# Extract the time data from the CSV
 wallpowertime = np.asarray(wallpdata["time"].tolist()).astype(np.int)
+# Set the starting time for the time to 0
 wallpowertimezero = wallpowertime[0]
 wallpowerx = []
 for x in wallpowertime:
     wallpowerx.append(x-wallpowertimezero)
+# Calculate the average power
 wallpoweravg = round(sum(wallpower)/len(wallpower), 1)
 
+# Generate the power html for the report
 wallpowerhtml = "<h2>Wall Power</h2><img src='./tmp/wallpower.png'/><p>Wall Power Avg: " +\
                 str(wallpoweravg) +\
                 "Watts</p><p><a href='./tmp/wallpower.csv' class='btn btn-info' role='button'>Download Power CSV</a>"
 
+# Plot and save the wall power figure
 plt.figure(1)
 plt.plot(wallpowerx, wallpower, label="Wall Power")
 plt.xlabel("Time (Seconds)")
@@ -580,9 +608,12 @@ plt.xlim(left=0)
 plt.xlim(right=max(wallpowerx))
 plt.savefig("./tmp/wallpower.png", bbox_inches="tight")
 
+# Plot and save the l3 cache miss figure
 plt.figure(2)
+# Loop through all cores and plot their data
 for i, y in enumerate(l3misscore):
     plt.plot(socketx, y, label="Core " + str(appcores[i]))
+# If the master core is enabled then plot its data
 if appmasterenabled is True:
     plt.plot(socketx, l3missmaster, alpha=0.5, label="Master Core ("+str(appmaster)+")")
 plt.xlabel("Time (Seconds)")
@@ -592,15 +623,18 @@ plt.legend()
 plt.ylim(bottom=0)
 plt.xlim(left=0)
 plt.xlim(right=max(socketx))
-#plt.yscale('log')
 plt.savefig("./tmp/l3miss.png", bbox_inches="tight")
+
+# Generate the ls cache misses html for the report
 l3misshtml = "<h2>L3 Cache</h2><img src='./tmp/l3miss.png'/>"
+# Generate html for the master core if enabled
 if appmasterenabled is True:
     l3misshtml += "<p>Master Core (" +\
                   str(appmaster) +\
                   ") L3 Misses: " +\
                   str(l3missmasteravg) +\
                   "</p>"
+# Generate html for all the app cores
 for i, x in enumerate(l3misscoreavg):
     l3misshtml += "<p>Core " +\
                   str(appcores[i]) +\
@@ -608,6 +642,8 @@ for i, x in enumerate(l3misscoreavg):
                   str(x) +\
                   "</p>"
 
+# Plot and save the l2 cache miss figure
+# Very similar to l3 cache miss above
 plt.figure(3)
 for i, y in enumerate(l2misscore):
     plt.plot(socketx, y, label="Core "+str(appcores[i]))
@@ -620,7 +656,6 @@ plt.legend()
 plt.ylim(bottom=0)
 plt.xlim(left=0)
 plt.xlim(right=max(socketx))
-#plt.yscale('log')
 plt.savefig("./tmp/l2miss.png", bbox_inches="tight")
 l2misshtml = "<h2>L2 Cache</h2><img src='./tmp/l2miss.png'/>"
 if appmasterenabled is True:
@@ -636,6 +671,8 @@ for i, x in enumerate(l2misscoreavg):
                   str(x) +\
                   "</p>"
 
+# Plot and save the l3 cache hit figure
+# Very similar to l3 cache miss above
 plt.figure(4)
 for i, y in enumerate(l3hitcore):
     plt.plot(socketx, y, label="Core " + str(appcores[i]))
@@ -663,6 +700,8 @@ for i, x in enumerate(l3hitcoreavg):
                  str(x) +\
                  "%</p>"
 
+# Plot and save the l2 cache hit figure
+# Very similar to l3 cache miss above
 plt.figure(5)
 for i, y in enumerate(l2hitcore):
     plt.plot(socketx, y, label="Core "+str(appcores[i]))
@@ -690,16 +729,21 @@ for i, x in enumerate(l2hitcoreavg):
                  str(x) +\
                  "%</p>"
 
+# If telemetry is enabled then do telemetry calculations
 telemhtml = ""
 telemdatapoints = 0
 if telemetryenabled is True:
+    # Read telemetry data from CSV
     telemdata = pandas.read_csv('tmp/telemetry.csv', sep=',', low_memory=False)
+    # Calculate telemetry datapoints
     telemdatapoints = telemdata.shape[0]*telemdata.shape[1]
+    #Extract telemery data from pandas (packets and bytes information)
     telempkts = np.asarray(telemdata["tx_good_packets"].tolist()).astype(np.int)
     telembytes = np.asarray(telemdata["tx_good_bytes"].tolist()).astype(np.int)
     telemerrors = np.asarray(telemdata["tx_errors"].tolist()).astype(np.int)
     telemdropped = np.asarray(telemdata["tx_dropped"].tolist()).astype(np.int)
     telemtime = np.asarray(telemdata["time"].tolist()).astype(np.float)
+    # Create array for packet distribution using only specific column set
     telempktdist = telemdata.loc[:,["tx_size_64_packets",
                                     "tx_size_65_to_127_packets",
                                     "tx_size_128_to_255_packets",
@@ -707,6 +751,7 @@ if telemetryenabled is True:
                                     "tx_size_512_to_1023_packets",
                                     "tx_size_1024_to_1522_packets",
                                     "tx_size_1523_to_max_packets"]].tail(1).values[0]
+    # Array of human readable names for packet distribution
     telempktsizes = ["64",
                      "65 to 127",
                      "128 to 255",
@@ -714,6 +759,7 @@ if telemetryenabled is True:
                      "512 to 1024",
                      "1024 to 1522",
                      "1523 to max"]
+    # Extract error and dropped packet data
     telemrxerrors = telemdata.loc[:,"rx_errors"].tail(1).values[0]
     telemrxerrorsbool = False
     telemtxerrors = telemdata.loc[:,"tx_errors"].tail(1).values[0]
@@ -723,6 +769,7 @@ if telemetryenabled is True:
     telemtxdropped = telemdata.loc[:,"tx_dropped"].tail(1).values[0]
     telemtxdroppedbool = False
 
+    # Warn the user if any TX or RX errors occured during the test
     if int(telemrxerrors) is not 0:
         print("ERROR: RX errors occured during this test (rx_errors: "+str(telemrxerrors)+")")
         telemrxerrorsbool = True
@@ -730,6 +777,7 @@ if telemetryenabled is True:
         print("ERROR: TX errors occured during this test (tx_errors: "+str(telemtxerrors)+")")
         telemtxerrorsbool = True
 
+    # Warn the user if any packets were dropped during the test
     if int(telemrxdropped) is not 0:
         print("ERROR: RX Packets were dropped during this test (rx_dropped: "+str(telemrxdropped)+")")
         telemrxdroppedbool = True
