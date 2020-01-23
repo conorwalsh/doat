@@ -21,6 +21,7 @@ import time
 import signal
 import datetime
 
+
 # Function to check if a process with a given PID is still alive
 def check_pid(pid):
     # Try to send the process a signal (0 will not kill the process)
@@ -32,6 +33,7 @@ def check_pid(pid):
     # If the signal can be sent the process exists (or is still alive)
     else:
         return True
+
 
 # Function to print a startup message to the terminal
 def doat_motd():
@@ -48,7 +50,8 @@ def doat_motd():
     # Print Author and Year
     print("          (c) Conor Walsh "+str(now.year)+"\n")
 
-# Function to check if the required enviroment varibles are set
+
+# Function to check if the required environment variables are set
 def sys_check():
     # Abort if RTE_SDK is not set
     if "RTE_SDK" not in os.environ:
@@ -59,13 +62,14 @@ def sys_check():
     # Alert user if the checks have passed
     print("System Checks PASSED")
 
+
 # Function to make the program wait for a set number of seconds
 #   and display a progressbar to the user
 def progress_bar(seconds):
     for x in tqdm(range(seconds, 0, -1)):
         time.sleep(1)
 
+
 # Function to kill a process and all of its children using PID
 def kill_group_pid(pid):
     os.killpg(os.getpgid(pid), signal.SIGTERM)
-
