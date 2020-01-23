@@ -1320,20 +1320,9 @@ if openabled is True and stepsenabled is True:
     oprechtml = "<h2>Optimisation Recommendations</h2>"
 
     if (opsocketreadavgdiff<-25.0) and (opsocketwriteavgdiff<-25.0) and (abs(optelemthroughputavgdiff)<0.2) and optelemrxdropped <=0 and optelemtxdropped <= 0:
-        oprechtml += "<p>We would recommend changing from ring mempools to stack mempools based on the optimisation results</p><p>This can be done by setting CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS=\"stack\" in the DPDK common_base file</p>"
+        oprechtml += "<p>It is recommended to change from ring mempools to stack mempools based on the optimisation results.<br/>This can be done by setting CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS=\"stack\" in the DPDK common_base file.</br>Please manually review this report to confirm that this recommendation is right for your project.</p>"
     else:
-        oprechtml += "<p>We would not recommend changing from ring mempools to stack mempools based on the optimisation results</p>"
-
-    if (opsocketreadavgdiff<-25.0):
-        print("opsocketreadavgdiff<-25.0")
-    if (opsocketwriteavgdiff<-25.0):
-        print("opsocketwriteavgdiff<-25.0")
-    if (abs(optelemthroughputavgdiff)<0.2):
-        print("(abs(optelemthroughputavgdiff)<0.2)")
-    if optelemrxdropped is 0:
-        print("optelemrxdropped is 0")
-    if optelemtxdropped is 0:
-        print("optelemtxdropped is 0")
+        oprechtml += "<p>It is recommended not to change from ring mempools to stack mempools based on the optimisation results</p>"
 
     ophtml = "<div class='row' style='page-break-after: always;'>" + opmembwhtml + "</div>" +\
              "<div class='row' style='page-break-after: always;'>" + opwallpowerhtml + "</div>" +\
@@ -1341,8 +1330,8 @@ if openabled is True and stepsenabled is True:
              "<div class='row' style='page-break-after: always;'>" + opl3hithtml + "</div>" +\
              "<div class='row' style='page-break-after: always;'>" + opl2misshtml + "</div>" +\
              "<div class='row' style='page-break-after: always;'>" + opl2hithtml + "</div>" +\
-             "<div class='row' style='page-break-after: always;'>" + optelemhtml + "</div>" +\
-             "<div class='row'>" + oprechtml + "</div>"
+             "<div class='row'>" + optelemhtml + "</div>" +\
+             "<div class='row' style='page-break-after: always;'>" + oprechtml + "</div>"
 
     opdatapoints = oppcmdatapoints + opwallpdatapoints + optelemdatapoints
 
@@ -1411,7 +1400,7 @@ indexfile.write("<html><head><title>DOAT Report</title><link rel='stylesheet' hr
                 "<div class='row' style='page-break-after: always;'>" + l3hithtml + "</div>" +
                 "<div class='row' style='page-break-after: always;'>" + l2misshtml + "</div>" +
                 "<div class='row' style='page-break-after: always;'>" + l2hithtml + "</div>" +
-                "<div class='row'>" + telemhtml + "</div>" +
+                "<div class='row' style='page-break-after: always;'>" + telemhtml + "</div>" +
                 testheader2 +
                 ophtml +
                 "<div class='row'><h2>Test Configuration</h2>"+((json2html.convert(json = (str({section: dict(config[section]) for section in config.sections()})).replace("\'", "\""))).replace("border=\"1\"", "")).replace("table", "table class=\"table\"", 1) + "</div>" +
