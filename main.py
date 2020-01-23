@@ -1,5 +1,22 @@
 #!/usr/bin/env python3
 
+"""
+
+ main.py
+
+ This is the main file for the DOAT platform
+ The DPDK Optimisation and Analysis Tool (DOAT) is an out-of-band tool for analysing
+    and optimising DPDK applications 
+
+ Usage:
+    1) Setup DOAT by editing the config.cfg file in this directory
+    2) Run ./main.py
+
+ Copyright (c) 2020 Conor Walsh
+ DOAT is licensed under an MIT license (see included license file)
+
+"""
+
 from doatFunctions import *
 import sys
 import subprocess
@@ -24,39 +41,55 @@ doat_motd()
 # Check system setup
 sys_check()
 
+# DOAT takes all of its configuration options from the user using a config file (config.cfg)
+# Declare parser and read in config.cfg
 config = configparser.ConfigParser()
 config.read('config.cfg')
 
+# Read and store value for startuptime (will abort if not present)
+# This is the time in seconds that you want to allow for your app to stabilise
 startuptime = int(config['DOAT']['startuptime'])
 if startuptime is not None:
     print("Startup time for DPDK App:", startuptime)
 else:
     sys.exit("No startup time was specified (startuptime in config.cfg), ABORT!")
 
+# Read and store value for testruntime (will abort if not present)
+# This is the time in seconds that you want the test to run for
 testruntime = int(config['DOAT']['testruntime'])
 if testruntime is not None:
     print("Run time for Test:", testruntime)
 else:
     sys.exit("No test run time was specified (testruntime in config.cfg), ABORT!")
 
+# Read and store value for teststepsize (will abort if not present)
+# This is the resolution of the test in seconds
 teststepsize = float(config['DOAT']['teststepsize'])
 if teststepsize is not None:
     print("Step size for Test:", teststepsize)
 else:
     sys.exit("No test run time was specified (testruntime in config.cfg), ABORT!")
 
+# Read and store value for serverport (will abort if not present)
+# This is the port that the results server will run on
 serverport = int(config['DOAT']['serverport'])
 if serverport is not None:
     print("Results server port:", serverport)
 else:
     sys.exit("No server port was specified (serverport in config.cfg), ABORT!")
 
+# Read and store value for projectname
+# This specifies the name of the project for the report
+#   This can be left blank if not required
 projectname = config['REPORTING']['projectname']
 if projectname is not None and projectname is not "":
-    print("Project Name:", projectname)
+    print("\nProject Name:", projectname)
 else:
     print("No project name was specified (projectname in config.cfg), continuing without")
 
+# Read and store value for testername and testeremail
+# This specifies the name and email of the tester for traceability
+#   These can be left blank if not required
 testername = config['REPORTING']['testername']
 testeremail = config['REPORTING']['testeremail']
 if testername is not None and testeremail is not None and testername is not "" and testeremail is not "":
@@ -66,6 +99,8 @@ else:
     testeremail = None
     print("Tester name and/or email was not specified (testername & testeremail in config.cfg), continuing without")
 
+# Read and store value for generatepdf
+# This sets if a PDF report will be generated or not
 generatepdf = False
 if config['REPORTING'].getboolean('generatepdf') is True:
     generatepdf = True
@@ -73,6 +108,8 @@ if config['REPORTING'].getboolean('generatepdf') is True:
 else:
     print("PDF report geneneration is disabled")
 
+# Read and store value for generatezip
+# This sets if a ZIP Archive will be generated or not
 generatezip = False
 if config['REPORTING'].getboolean('generatezip') is True:
     generatezip = True
@@ -80,29 +117,41 @@ if config['REPORTING'].getboolean('generatezip') is True:
 else:
     print("ZIP Archive geneneration is disabled")
 
+# Read and store value for rtesdk
+# This is where the root path of the DPDK build
 rtesdk = os.environ['RTE_SDK']
-print("RTE SDK:",rtesdk)
+print("\nRTE SDK:",rtesdk)
 
+# Read and store value for rtetarget
+# This is the target that DPDK needs to be built for
 rtetarget = os.environ['RTE_TARGET']
 print("RTE TARGET:",rtetarget)
 
+# Read and store value for appcmd (will abort if not present)
+# This is the command or script used to launch your DPDK app
 appcmd = config['APPPARAM']['appcmd']
 if appcmd is not None:
     print("DPDK app launch command:", appcmd)
 else:
     sys.exit("No DPDK command was specified (appcmd in config.cfg), ABORT!")
 
+# Read and store value for applocation (will abort if not present)
+# This is the root path of your app (not the build folder)
 applocation = config['APPPARAM']['applocation']
 if applocation is not None:
     print("DPDK app location:",applocation)
 else:
     sys.exit("No DPDK app location was specified (applocation in config.cfg), ABORT!")
 
+# Check if DPDK has been complied with DPDK or not
 telemenabledraw = subprocess.check_output("cat $RTE_SDK/config/common_base | grep CONFIG_RTE_LIBRTE_TELEMETRY", shell=True).decode(sys.stdout.encoding).rstrip().strip()[-1:]
 telemetryenableddpdk = False
 if telemenabledraw is "y":
     telemetryenableddpdk = True
 
+# Read and store value for telemetryenabled
+# If telemetry statistics are required they can be enabled here
+# If DPDK telemetry is not compiled telemetry will not be enabled
 telemetryenabled = False
 if config['APPPARAM'].getboolean('telemetry') is True and telemetryenableddpdk is True:
     telemetryenabled = True
@@ -112,31 +161,46 @@ elif telemetryenableddpdk is False:
 else:
     print("DPDK telemetry is disabled")
 
+# Read and store value for socketpath
+#   (will abort if not present and telemetry enabled)
+# This is the path to the DPDK apps telemetry socket
 socketpath = config['APPPARAM']['socketpath']
 if socketpath is not None and telemetryenabled is True:
     print("DPDK app telemetry socket path:", socketpath)
 elif telemetryenabled is True:
     sys.exit("Telemetry is enabled but socketpath in config.cfg has not been set, ABORT!")
 
+# Read and store value for openabled
+# To run optimisation it is enabled here
 openabled = False
 if config['OPTIMISATION'].getboolean('optimisation') is True:
     openabled = True
-    print("Optimisation is enabled")
+    print("\nOptimisation is enabled")
 else:
-    print("Optimisation is disabled")
+    print("\nOptimisation is disabled")
 
+# Read and store value for dpdkmakecmd
+#   (will abort if not present and optimisation enabled)
+# The command that is run in $RTE_SDK to build DPDK
 dpdkmakecmd = config['OPTIMISATION']['dpdkmakecmd']
 if dpdkmakecmd is not None and openabled is True:
     print("DPDK Make Command:",dpdkmakecmd)
 elif openabled is True:
     sys.exit("Optimisation is enabled but dpdkmakecmd in config.cfg has not been set, ABORT!")
 
+# Read and store value for appmakecmd
+# The command that is run in the main directory of your app to build the app
 appmakecmd = config['OPTIMISATION']['appmakecmd']
 if appmakecmd is not None and openabled is True:
     print("DPDK App Make Command:",appmakecmd)
 elif openabled is True:
     sys.exit("Optimisation is enabled but appmakecmd in config.cfg has not been set, ABORT!")
 
+# Read and store value for memop
+# If this is enabled the memory optimisation step will be run
+# In order to use this the DPDK build must be configured correctly
+#   will abort if any of the configuration options are incorrect
+#   instructions are given to the user about how to retify the problem
 memop = False
 if config['OPTIMISATION'].getboolean('memop') is True and openabled is True:
     stacklibcompiled = subprocess.check_output("cat $RTE_SDK/config/common_base | grep -m1 CONFIG_RTE_LIBRTE_STACK=", shell=True).decode(sys.stdout.encoding).rstrip().strip()[-1:]
@@ -154,20 +218,29 @@ if config['OPTIMISATION'].getboolean('memop') is True and openabled is True:
 elif openabled is True:
     print("Memory Optimisation Step is disabled")
 
+# Read and store value for testcore
+# This core will run the test software
+#   (If more than 1 socket use socket not running DPDK app)
 testcore = int(config['CPU']['testcore'])
 
+# Read and store value for testsocket using the value for testcore
+# This is the socket the tests will run on
 testsocket = int(subprocess.check_output("cat /proc/cpuinfo | grep -A 18 'processor\s\+: " +
                                          str(testcore) +
                                          "' | grep 'physical id' | head -1 | awk '{print substr($0,length,1)}'",
                                          shell=True))
 
+# Abort test if the testcore is not specified
 if testcore is not None:
-    print("Test software core:", testcore, "(Socket: " + str(testsocket) + ")")
+    print("\nTest software core:", testcore, "(Socket: " + str(testsocket) + ")")
 else:
     sys.exit("No test core was specified (testcore in config.cfg), ABORT!")
 
+# Read and store value for appmaster
+# This is the master core of the DPDK app
 appmasterenabled = True
 appmaster = int(config['CPU']['appmaster'])
+# Find the socket that the master core runs on
 appmastersocket = int(subprocess.check_output("cat /proc/cpuinfo | grep -A 18 'processor\s\+: " +
                                               str(appmaster) +
                                               "' | grep 'physical id' | head -1 | awk '{print substr($0,length,1)}'",
@@ -178,10 +251,14 @@ else:
     appmasterenabled = False
     print("DPDK app has no master core")
 
+# Read and store value for includemaster
+# If statistics from the master core are required in the report set it here
 if config['REPORTING'].getboolean('includemaster') is False:
     appmasterenabled = False
     print("DPDK app master core will not be included in reports")
 
+# Read and store value for appcores (will abort if not present)
+# These are the cores that the DPDK app runs on
 appcores = [int(e) for e in (config['CPU']['appcores']).split(",")]
 appcoresno = len(appcores)
 if appcores is not None:
@@ -189,6 +266,7 @@ if appcores is not None:
 else:
     sys.exit("No DPDK app cores were specified (appcores in config.cfg), ABORT!")
 
+# Find and store the values of the sockets that the DPDK app cores are on
 appcoressockets = []
 appsocket = None
 for x in appcores:
@@ -197,6 +275,8 @@ for x in appcores:
                                                        "' | grep 'physical id' | head -1 | awk '{print substr($0,length,1)}'",
                                                        shell=True)))
 
+# Check that all DPDK cores are on the same socket
+# Will abort if the are not on the same socket as this is very bad for performance
 if appmasterenabled:
     if all(x == appcoressockets[0] for x in appcoressockets) and appmastersocket == appcoressockets[0]:
         appsocket = appcoressockets[0]
@@ -210,38 +290,46 @@ else:
     else:
         sys.exit("DPDK app cores must be on the same socket, ABORT!")
 
+# Read and store value for pcmdir (will abort if not present)
+# This is the path where you have installed PCM tools
 pcmdir = config['TOOLS']['pcmdir']
 if pcmdir is not None:
-    print("PCM directory:", pcmdir)
+    print("\nPCM directory:", pcmdir)
 else:
     sys.exit("No PCM directory was specified (pcmdir in config.cfg), ABORT!")
 
+# All of the test results are stored in a tmp directory while
+#   while DOAT is running, create the dir if it doesnt exist
 if not os.path.exists("tmp"):
     os.makedirs('tmp')
 
+# Store the original cpu affinity that programs are launched with
+#   before we pin DOAT to a core this means we can unpin DOAT
 cpuafforig = subprocess.check_output("taskset -cp " +
                                      str(os.getpid()),
                                      shell=True).decode(sys.stdout.encoding).rstrip().split(':', 1)[-1].strip()
+print("\nOriginal CPU Affinity: " + cpuafforig)
 
-print("Original CPU Affinity: " + cpuafforig)
-
+# Pin DOAT to the core specified by the user
 subprocess.call("taskset -cp " +
                 str(testcore) + " " +
                 str(os.getpid()),
                 shell=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL)
-
 print("DOAT pinned to core",
       testcore,
       "PID:",
       os.getpid())
 
+# DOAT will start the first analysis of the DPDK app
+#   if no optimisation is enabled this will be the only analysis
 if openabled:
     print("\nStarting Analysis of Original unmodified DPDK App")
 else:
     print("\nStarting Analysis of DPDK App")
 
+# Spawn the DPDK app in a new process
 print("Starting DPDK App")
 proc = subprocess.Popen(applocation+appcmd,
                         stdout=subprocess.DEVNULL,
@@ -250,29 +338,31 @@ proc = subprocess.Popen(applocation+appcmd,
                         preexec_fn=os.setsid)
 testpid = proc.pid
 
-
-# TODO Deal with measurement
-# Once Test Process is spawned add catch to kill test process if test abandoned
+# Once Test Process is spawned add catch to kill test process and cleanup if test abandoned
 def safeexit():
     try:
+        # Remove test results from tmp directory and index.html
         os.system("rm -rf tmp")
         os.remove("index.html")
+        # Kill the test process
         kill_group_pid(testpid)
     except:
         pass
     print("Exiting . . .")
-
-
 atexit.register(safeexit)
 
+# Check that the DPDK app started
 if check_pid(testpid):
     print("DPDK App started successfully")
+# Abort if the ap died
 else:
     sys.exit("DPDK App failed to start, ABORT!")
 
+# Wait for the time specified by the user for the app to startup and settle
 print("Allow application to startup and settle . . .")
 progress_bar(startuptime)
 
+# Check that the DPDK app is still alive if not abort
 if proc.poll() is not None:
     sys.exit("DPDK App died or failed to start, ABORT!")
 else:
@@ -281,18 +371,24 @@ else:
 
 print('Starting Measurements . . .')
 
+# Spawn PCM in a new process
+# PCM will measure cpu and platform metrics
 pcm = subprocess.Popen(pcmdir+'pcm.x '+str(teststepsize)+' -csv=tmp/pcm.csv',
                        stdout=subprocess.DEVNULL,
                        stderr=subprocess.STDOUT,
                        shell=True,
                        preexec_fn=os.setsid)
 
+# Spawn ipmitool in a new process
+# IPMItool is used to measure platform power usage
 wallp = subprocess.Popen("echo 'power,time\n' > tmp/wallpower.csv; while true; do ipmitool sdr | grep 'PS1 Input Power' | cut -c 20- | cut -f1 -d 'W' | tr -d '\n' | sed 's/.$//' >> tmp/wallpower.csv; echo -n ',' >> tmp/wallpower.csv; date +%s >> tmp/wallpower.csv; sleep "+str(teststepsize)+"; done",
                          stdout=subprocess.DEVNULL,
                          stderr=subprocess.STDOUT,
                          shell=True,
                          preexec_fn=os.setsid)
 
+# If telemetry is enabled then spawn the telemetry tool in a new process
+# This tool uses the DPDK telemetry API to get statistics about the DPDK app
 if telemetryenabled is True:
     telem = subprocess.Popen('./tools/dpdk-telemetry-auto-csv.py '+socketpath+' tmp/telemetry.csv '+str(testruntime+2)+' '+str(teststepsize),
                              stdout=subprocess.DEVNULL,
@@ -300,32 +396,53 @@ if telemetryenabled is True:
                              shell=True,
                              preexec_fn=os.setsid)
 
+# Wait 2 seconds for the measurement tools to startup
 progress_bar(2)
 
+# Check if IMPItool is still alive after startup
+# Abort if not
 if wallp.poll() is not None:
+    # Kill PCM
     kill_group_pid(pcm.pid)
+    # Kill DPDK app
     kill_group_pid(proc.pid)
+    # Kill telemetry if enabled
     if telemetryenabled is True:
         kill_group_pid(telem.pid)
+    # Exit
     sys.exit("IPMItool died or failed to start, ABORT!")
 
+# Check if PCM is still alive after startup
+# Abort if not
 if pcm.poll() is not None:
+    # Kill IMPItool
     kill_group_pid(wallp.pid)
+    # Kill DPDK app
     kill_group_pid(proc.pid)
+    # Kill telemetry if enabled
     if telemetryenabled is True:
         kill_group_pid(telem.pid)
+    # Exit
     sys.exit("PCM died or failed to start, ABORT! (If problem persists, try to execute 'modprobe msr' as root user)")
 
+# If telemetry enabled check if its still alive
+# Abort if not
 if telemetryenabled is True:
     if telem.poll() is not None:
+        # Kill PCM
         kill_group_pid(pcm.pid)
+        # Kill IMPItool
         kill_group_pid(wallp.pid)
+        # Kill DPDK app
         kill_group_pid(proc.pid)
+        # Exit
         sys.exit("Telemetry died or failed to start, ABORT!")
 
+# Allow test to run and collect statistics for user spefied time
 print("Running Test . . .")
 progress_bar(testruntime)
 
+# Check if the DPDK App is still alive after the test
 appdiedduringtest = False
 if proc.poll() is None:
     print("SUCCESS: DPDK App is still alive after test")
@@ -333,31 +450,29 @@ else:
     print("ERROR: DPDK App died during test")
     appdiedduringtest = True
 
+# Kill all tools
 print("Killing test processes")
-
 kill_group_pid(testpid)
-
 kill_group_pid(pcm.pid)
-
 kill_group_pid(wallp.pid)
-
 if telemetryenabled is True:
     kill_group_pid(telem.pid)
 
+# Abort test if DPDK app died during test
 if appdiedduringtest is True:
     sys.exit("Test invalid due to DPDK App dying during test, ABORT!")
 
-#print("Generating report")
-
+# PCM tool exports CSVs that use semicolons instead of the standard comma
+# Open file and replace all semicolons with commas
+# This could have been used but its more convient for the user
 f = open('tmp/pcm.csv', 'r')
 filedata = f.read()
 f.close()
-
 newdata = filedata.replace(";", ",")
-
 f = open('tmp/pcm.csv', 'w')
 f.write(newdata)
 f.close()
+
 
 pcmdata = pandas.read_csv('tmp/pcm.csv', low_memory=False)
 
