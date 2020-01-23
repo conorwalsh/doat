@@ -1,10 +1,10 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 """
 
  dpdk-telemetry-auto-csv.py
 
- This is a tool for automatically collecting statistics from the DPDK JSON
+ This is a Python3 tool for automatically collecting statistics from the DPDK JSON
     API and collating these stats into a CSV file
 
  Usage: ./dpdk-telemetry-auto-csv.py socket_path csv_path test_length step_size
@@ -110,13 +110,13 @@ class Client:
         self.socket.recv_fd.settimeout(2)
         self.socket.send_fd.connect("/var/run/dpdk/rte/telemetry")
         JSON = (API_REG + self.file_path + "\"}}")
-        self.socket.send_fd.sendall(JSON)
+        self.socket.send_fd.sendall(JSON.encode('utf-8'))
         self.socket.recv_fd.listen(1)
         self.socket.client_fd = self.socket.recv_fd.accept()[0]
 
     # Unregister and disconnect a client
     def unregister(self):
-        self.socket.client_fd.send(API_UNREG + self.file_path + "\"}}")
+        self.socket.client_fd.send((API_UNREG + self.file_path + "\"}}").encode('utf-8'))
         self.socket.client_fd.close()
 
     # Function to control the automatic collection of results
@@ -133,7 +133,7 @@ class Client:
 
     # Function to request the needed metrics and save them to csv
     def saveMetrics(self, currenttime, csv_path):
-        self.socket.client_fd.send(METRICS_REQ)
+        self.socket.client_fd.send(METRICS_REQ.encode('utf-8'))
         data = self.socket.client_fd.recv(BUFFER_SIZE)
         jdata = json.loads(data)
         f = open(csv_path, 'a+')
