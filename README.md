@@ -58,7 +58,7 @@ _Example DOAT Reports can be seen in the examples directory of this repo_
 
 ## Meta
 
-Conor Walsh – [@conorwalsh_ire](https://twitter.com/conorwalsh_ire) – conor@conorwalsh.net
+Conor Walsh – conor@conorwalsh.net
 
 DOAT is distributed under the MIT license. See ``LICENSE`` for more information.
 
