@@ -785,8 +785,11 @@ if telemetryenabled is True:
         print("ERROR: TX Packets were dropped during this test (tx_dropped: "+str(telemtxdropped)+")")
         telemtxdroppedbool = True
 
+    # Generate the packet distrinution figure
     plt.figure(6)
+    # Create an x array for the plot
     x = np.arange(telempktdist.size)
+    # Plot the distribution as a bar graph
     plt.bar(x, height=telempktdist)
     plt.xticks(x, telempktsizes, rotation=45)
     plt.xlabel("Packet Sizes (Bytes)")
@@ -794,24 +797,31 @@ if telemetryenabled is True:
     plt.title("Packet Size Distribution")
     plt.savefig("./tmp/pktdist.png", bbox_inches="tight")
 
+    # Reset the telemetry time to zero
     telembyteszero = telembytes[0]
     telembytesreset = []
     for y in telembytes:
         telembytesreset.append(y-telembyteszero)
-
+    
+    # Convert the bytes measurements to gigabytes
     telemgbytes = [x / 1000000000 for x in telembytesreset]
-
+    
+    # Find how many gigabytes were passed during the test
     telemgbytesmax = np.round(max(telemgbytes),1)
 
+    # Reset the starting packet count to zero
     telempktszero = telempkts[0]
     telempktsreset = []
     for y in telempkts:
         telempktsreset.append(y-telempktszero)
 
+    # Find how many packets were passed during the test
     telempktsresetmax = max(telempktsreset)
 
+    # Generate a figure of how many packets and how much data was passed during the test
     plt.figure(7)
     fig, ax1 = plt.subplots()
+    # Create a second axis for packets
     ax2 = ax1.twinx()
     ax1.plot(telemtime, telemgbytes, alpha=1, label="Data Transfered")
     ax2.plot(telemtime, telempktsreset, alpha=0.6, color='orange', label="Packets Transfered")
@@ -820,6 +830,7 @@ if telemetryenabled is True:
     ax2.set_ylabel('Packets Transfered (Packets)')
     ax1.set_ylim(bottom=0)
     ax2.set_ylim(bottom=0)
+    # Manually move the legends as they will generate ontop of each other (seperate because twin axis)
     ax1.legend(loc=2)
     ax2.legend(loc=1)
     plt.title("Data/Packets Transfered")
@@ -827,32 +838,43 @@ if telemetryenabled is True:
     plt.xlim(right=max(telemtime))
     plt.savefig("./tmp/transfer.png", bbox_inches="tight")
 
+    # Using the packets measurements calulate the packets per second (pps) array
     telempktssec = []
     for i, y in enumerate(telempktsreset):
+        # If not the zeroth or first element calculate and append the pps
         if i is not 0 and i is not 1:
             telempktssec.append((y-telempktsreset[i-1])/teststepsize)
+        # If the first element calculate the pps, append it to the array and update zeroth element
         elif i is 1:
             val = (y-telempktsreset[i-1])/teststepsize
             telempktssec.append(val)
             telempktssec[0] = val
+        # If the zeroth element dont calulate append placeholder value (0) as no previous element exists
         else:
             telempktssec.append(0)
 
+    # Calulate the average pps
     telempktsecavg = np.round(np.mean(telempktssec),0)
 
+    # Using the bytes measurements calulate the throughput array
     telemthroughput = []
     for i, y in enumerate(telembytesreset):
+        # If not the zeroth or first element calculate and append the throughput (Note: bits not bytes as per standard)
         if i is not 0 and i is not 1:
             telemthroughput.append((y-telembytesreset[i-1])/1000000000*8/teststepsize)
+        # If the first element calculate the throughput, append it to the array and update zeroth element
         elif i is 1:
             val = ((y-telembytesreset[i-1])/1000000000*8/teststepsize)
             telemthroughput.append(val)
             telemthroughput[0] = val
+        # If the zeroth element dont calulate append placeholder value (0) as no previous element exists
         else:
             telemthroughput.append(0)
 
+    # Calulate the average throughput
     telemthroughputavg = np.round(np.mean(telemthroughput),2)
 
+    # Generate plot of pps and throughput
     plt.figure(8)
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
@@ -872,10 +894,13 @@ if telemetryenabled is True:
     plt.xlim(right=max(telemtime))
     plt.savefig("./tmp/speeds.png", bbox_inches="tight")
 
+    # Add generated figures, averages and maximums to the telemetry html
     telemhtml += "<h2>Telemetry</h2><img src='./tmp/pktdist.png'/><br/><img src='./tmp/transfer.png'/><p>Total Data Transfered: "+str(telemgbytesmax)+"GB</p><p>Total Packets Transfered: "+str(format(telempktsresetmax,","))+" packets</p><img src='./tmp/speeds.png'/><p>Average Throughput: "+str(telemthroughputavg)+" Gbps</p><p>Average Packets Per Second: "+str(format(telempktsecavg,","))+" pps</p>"
 
+    # Add telemetry CSV to telemetry html
     telemhtml+="<p><a href='./tmp/telemetry.csv' class='btn btn-info' role='button'>Download Full Telemetry CSV</a></p><h2>Errors</h2>"
 
+    # Geneerate Errors and Dropped statistics for telemetry html
     if telemrxerrorsbool is False:
         telemhtml+="<h3 style='color:green;font-weight:bold;'>RX Errors: "+str(telemrxerrors)+"</h3>"
     else:
@@ -893,9 +918,12 @@ if telemetryenabled is True:
         telemhtml+="<h3 style='color:green;font-weight:bold;'>TX Dropped Packets: "+str(telemtxdropped)+"</h3>"
     else:
         telemhtml+="<h3 style='color:red;font-weight:bold;'>TX Dropped Packets: "+str(telemtxdropped)+"</h3>"
+
+# If telemetry is disabled alert user in the report
 else:
     telemhtml += "<h2>Telemetry</h2><p style='color:red'>Telemetry is disabled</p>"
 
+# If PDF generation is enabled then add link to html, if ZIP generation is enabled add link to html
 reporthtml=""
 if generatepdf is True:
     reporthtml+="<p style='text-align:center'><a href='./tmp/doatreport.pdf' class='btn btn-success' role='button' style='font-size: 28px;'>Download PDF Report</a></p>"
@@ -905,17 +933,25 @@ if generatezip is True:
 ophtml = ""
 opdatapoints = 0
 stepsenabled = False
+# Check if any optimisation steps are enabled
 if memop is True:
     stepsenabled = True
 
+# If optimisation and any optimisation steps are enabled then perform optimisation
 if openabled is True and stepsenabled is True:
+    # Rewrite DPDK configuration (common_base) with updated options
     print("\nModifying DPDK Configuration")
-    for  line in fileinput.FileInput(rtesdk+"/config/common_base", inplace=1): 
+    for  line in fileinput.FileInput(rtesdk+"/config/common_base", inplace=1):
+        # Change mempool type
         if "CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS" in line and memop is True:
             sys.stdout.write('CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS="stack"\n')
+        # As more steps are added then more elif's will be added here
         else:
             sys.stdout.write(line)
     
+    # Set the CPU Affinity for DOAT back to normal this will speed up the build of DPDK as it will run
+    #   on all available cores instead of one (In tests while pinned build took ~15 mins while unpinned
+    #   took ~2 mins)
     subprocess.call("taskset -cp " +
                     cpuafforig + " " +
                     str(os.getpid()),
@@ -924,12 +960,15 @@ if openabled is True and stepsenabled is True:
                     stderr=subprocess.DEVNULL)
     print("DOAT unpinned from core to speed up build")
     
+    # Build DPDK and DPDK app with new DPDK configuration
     print("Building DPDK and DPDK App with new configuration options (This can take several minutes)")
     dpdkbuild = subprocess.Popen("cd "+rtesdk+"; "+dpdkmakecmd+"; cd "+applocation+"; "+appmakecmd+";",
                                  shell=True,
                                  stdout=subprocess.DEVNULL,
                                  stderr=subprocess.DEVNULL)
 
+    # While DPDK and the app are building display build time and running animation
+    # Progress of build to hard to track and keep clean this will howebver let the user know it hasnt crashed
     animation = "|/-\\"
     idx = 0
     buildtime = 0.0
@@ -940,6 +979,7 @@ if openabled is True and stepsenabled is True:
         buildtime += 0.1
         time.sleep(0.1)
 
+    # Pin DOAT to specified core again
     subprocess.call("taskset -cp " +
                     str(testcore) + " " +
                     str(os.getpid()),
@@ -954,6 +994,7 @@ if openabled is True and stepsenabled is True:
     print("\nAnalysing Modified DPDK App")
     print("Starting DPDK App")
     
+    # The process of running the test is the same as done above
     opproc = subprocess.Popen(applocation+appcmd,
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.STDOUT,
@@ -1042,6 +1083,9 @@ if openabled is True and stepsenabled is True:
 
     if opappdiedduringtest is True:
         sys.exit("Test invalid due to DPDK App dying during test, ABORT!")
+
+    # DOAT will now analyse the new data in the same way as previously
+    #   Op section also calculates the difference between the old and new data
 
     f = open('tmp/pcm_op.csv', 'r')
     opfiledata = f.read()
@@ -1135,6 +1179,10 @@ if openabled is True and stepsenabled is True:
         opsocketx.append(optimex)
         optimex += teststepsize
 
+    # The plots generated are very similar to the plots generated above except they allow
+    #   for comparison between the original and new data by putting them on the same plot
+    
+    # Generate the read and write memory bandwidth op figure
     plt.figure(10)
     plt.plot(socketx, socketread, alpha=0.7, label="Original Read")
     plt.plot(socketx, socketwrite, alpha=0.7, label="Original Write")
@@ -1172,7 +1220,8 @@ if openabled is True and stepsenabled is True:
     opwallpowerhtml = "<h2>Wall Power</h2><img src='./tmp/wallpower_op.png'/><p>Wall Power Avg: " +\
                     str(opwallpoweravg) +\
                     "Watts ("+'{0:+0.1f}'.format(opwallpoweravgdiff)+"%)</p><p><a href='./tmp/wallpower_op.csv' class='btn btn-info' role='button'>Download Power CSV</a>"
-
+    
+    # Plot and save the wall power op figure
     plt.figure(11)
     plt.plot(wallpowerx, wallpower, alpha=0.7, label="Original Wall Power")
     plt.plot(opwallpowerx, opwallpower, alpha=0.7, label="Modified Wall Power")
@@ -1186,6 +1235,7 @@ if openabled is True and stepsenabled is True:
     plt.xlim(right=max(opwallpowerx))
     plt.savefig("./tmp/wallpower_op.png", bbox_inches="tight")
 
+    # Plot and save the l3 cache miss op figure
     plt.figure(12)
     for i, y in enumerate(l3misscore):
         plt.plot(socketx, y, alpha=0.7, label="Original Core " + str(appcores[i]))
@@ -1202,7 +1252,6 @@ if openabled is True and stepsenabled is True:
     plt.ylim(bottom=0)
     plt.xlim(left=0)
     plt.xlim(right=max(opsocketx))
-    #plt.yscale('log')
     plt.savefig("./tmp/l3miss_op.png", bbox_inches="tight")
     opl3misshtml = "<h2>L3 Cache</h2><img src='./tmp/l3miss_op.png'/>"
     if appmasterenabled is True:
@@ -1218,6 +1267,7 @@ if openabled is True and stepsenabled is True:
                       str(x) +\
                       " ("+'{0:+0.1f}'.format(opl3misscoreavgdiff[i])+"%)</p>"
 
+    # Plot and save the l2 cache miss op figure
     plt.figure(13)
     for i, y in enumerate(l2misscore):
         plt.plot(socketx, y, alpha=0.7, label="Original Core " + str(appcores[i]))
@@ -1234,7 +1284,6 @@ if openabled is True and stepsenabled is True:
     plt.ylim(bottom=0)
     plt.xlim(left=0)
     plt.xlim(right=max(opsocketx))
-    #plt.yscale('log')
     plt.savefig("./tmp/l2miss_op.png", bbox_inches="tight")
     opl2misshtml = "<h2>L2 Cache</h2><img src='./tmp/l2miss_op.png'/>"
     if appmasterenabled is True:
@@ -1250,6 +1299,7 @@ if openabled is True and stepsenabled is True:
                       str(x) +\
                       " ("+'{0:+0.1f}'.format(opl2misscoreavgdiff[i])+"%)</p>"
 
+    # Plot and save the l3 cache hit op figure
     plt.figure(14)
     for i, y in enumerate(l3hitcore):
         plt.plot(socketx, y, alpha=0.7, label="Original Core " + str(appcores[i]))
@@ -1281,6 +1331,7 @@ if openabled is True and stepsenabled is True:
                      str(x) +\
                      "% ("+'{0:+0.1f}'.format(opl3hitcoreavgdiff[i])+"%)</p>"
 
+    # Plot and save the l2 cache hit op figure
     plt.figure(15)
     for i, y in enumerate(l2hitcore):
         plt.plot(socketx, y, alpha=0.7, label="Original Core "+str(appcores[i]))
@@ -1363,6 +1414,7 @@ if openabled is True and stepsenabled is True:
             print("ERROR: TX Packets were dropped during this test (tx_dropped: "+str(optelemtxdropped)+")")
             optelemtxdroppedbool = True
 
+        # Generate an op figure for packet distribution
         plt.figure(16)
         x = np.arange(optelempktdist.size)
         plt.bar(x, height=optelempktdist)
@@ -1435,6 +1487,7 @@ if openabled is True and stepsenabled is True:
         optelemthroughputavg = np.round(np.mean(optelemthroughput),2)
         optelemthroughputavgdiff = np.round(optelemthroughputavg-optelemthroughputavg,2)
 
+        # Generate am op figure for throughput and pps
         plt.figure(18)
         fig, ax1 = plt.subplots()
         ax2 = ax1.twinx()
@@ -1481,12 +1534,15 @@ if openabled is True and stepsenabled is True:
         optelemhtml += "<h2>Telemetry</h2><p style='color:red'>Telemetry is disabled</p>"
        
     oprechtml = "<h2>Optimisation Recommendations</h2>"
-
-    if (opsocketreadavgdiff<-25.0) and (opsocketwriteavgdiff<-25.0) and (abs(optelemthroughputavgdiff)<0.2) and optelemrxdropped <=0 and optelemtxdropped <= 0:
+    # Generate op recommendations
+    # If the mem b/w has improved while there was no decrease in throughput and no errors or drops
+    #   Then recommend mem op if not dont reccommend
+    if (opsocketreadavgdiff<-25.0) and (opsocketwriteavgdiff<-25.0) and (optelemthroughputavgdiff>-0.2) and optelemrxdropped <=0 and optelemtxdropped <= 0:
         oprechtml += "<p>It is recommended to change from ring mempools to stack mempools based on the optimisation results.<br/>This can be done by setting CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS=\"stack\" in the DPDK common_base file.</br>Please manually review this report to confirm that this recommendation is right for your project.</p>"
     else:
         oprechtml += "<p>It is recommended not to change from ring mempools to stack mempools based on the optimisation results</p>"
 
+    # Generate optimisation html
     ophtml = "<div class='row' style='page-break-after: always;'>" + opmembwhtml + "</div>" +\
              "<div class='row' style='page-break-after: always;'>" + opwallpowerhtml + "</div>" +\
              "<div class='row' style='page-break-after: always;'>" + opl3misshtml + "</div>" +\
@@ -1496,8 +1552,10 @@ if openabled is True and stepsenabled is True:
              "<div class='row'>" + optelemhtml + "</div>" +\
              "<div class='row' style='page-break-after: always;'>" + oprechtml + "</div>"
 
+    # Calculate op datapoints
     opdatapoints = oppcmdatapoints + opwallpdatapoints + optelemdatapoints
 
+    # Write old DPDK config file back
     print("\nSetting DPDK Configuration back to original")
     for  line in fileinput.FileInput(rtesdk+"/config/common_base", inplace=1):
         if "CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS" in line and memop is True:
@@ -1505,6 +1563,7 @@ if openabled is True and stepsenabled is True:
         else:
             sys.stdout.write(line)
     
+    # Unpin DOAT for DPDK build
     subprocess.call("taskset -cp " +
                     cpuafforig + " " +
                     str(os.getpid()),
@@ -1513,11 +1572,13 @@ if openabled is True and stepsenabled is True:
                     stderr=subprocess.DEVNULL)
     print("DOAT unpinned from core to speed up build")
 
+    # Rebuild DPDK with original DPDK config
     print("Rebuilding DPDK and DPDK App with original configuration options (This can take several minutes)")
     dpdkrebuild = subprocess.Popen("cd "+rtesdk+"; "+dpdkmakecmd+"; cd "+applocation+"; "+appmakecmd+";",
                                    shell=True,
                                    stdout=subprocess.DEVNULL,
                                    stderr=subprocess.DEVNULL)
+    # Building animation
     animation = "|/-\\"
     idx = 0
     buildtime = 0.0
@@ -1528,31 +1589,37 @@ if openabled is True and stepsenabled is True:
         buildtime += 0.1
         time.sleep(0.1)
 
-
-
+# If no op steps are enabled then dont run optimisation
 elif stepsenabled is False:
     print("\nNo Optimisation Steps are enabled skipping optimisation")
 
 print("\n\nGenerating report")
 
+# Sum all datapoints used in report
 datapoints = pcmdatapoints+wallpdatapoints+telemdatapoints+opdatapoints
 
+# Get report generation time in 2 formats
 reporttime1 = strftime("%I:%M%p on %d %B %Y", gmtime())
 reporttime2 = strftime("%I:%M%p %d/%m/%Y", gmtime())
 
+# If a project name is specified add it to the report
 projectdetailshtml = ""
 if projectname is not None and projectname is not "":
     projectdetailshtml += "<p style='font-size: 18px;'>Project: " + projectname + "</p>"
+# If a tester is specified add their details to the report
 if testername is not None and testeremail is not None and testername is not "" and testeremail is not "":
     projectdetailshtml += "<p style='font-size: 18px;'>Tester: " + testername + " ("+testeremail+")</p>"
 
+# If op enabled then split the report under 2 main headings
 testheader1 = ""
 testheader2 = ""
 if openabled is True:
     testheader1 = "<div class='row'><h1 style='font-weight:bold;'>Original DPDK App</h1></div>"
     testheader2 = "<div class='row'><h1 style='font-weight:bold;'>Modified DPDK App</h1></div>"
 
+# Create a html file to save the html report
 indexfile = open("index.html", "w")
+# Write all parts of the report to the html file
 indexfile.write("<html><head><title>DOAT Report</title><link rel='stylesheet' href='./webcomponents/bootstrap.341.min.css'><script src='./webcomponents/jquery.341.min.js'></script><script src='./webcomponents/bootstrap.341.min.js'></script><style>@media print{a{display:none!important}img{width:100%!important}}</style></head><body><div class='jumbotron text-center'><h1>DOAT Report</h1><p style='font-size: 14px'>DPDK Optimisation & Analysis Tool</p><p>Report compiled at "+reporttime1+" using "+str(format(datapoints,","))+" data points</p>" + 
                 projectdetailshtml +
                 "</div><div class='container'>" +
@@ -1569,8 +1636,10 @@ indexfile.write("<html><head><title>DOAT Report</title><link rel='stylesheet' hr
                 "<div class='row'><h2>Test Configuration</h2>"+((json2html.convert(json = (str({section: dict(config[section]) for section in config.sections()})).replace("\'", "\""))).replace("border=\"1\"", "")).replace("table", "table class=\"table\"", 1) + "</div>" +
                 "<div class='row' style='page-break-after: always;'>" + reporthtml + "</div>" +
                 "</div></body></html>")
+# Close the html file
 indexfile.close()
 
+# If PDF generation is on then generate the PDF report using the pdfkit (wkhtmltopdf)
 if generatepdf is True:
     pdfoptions = {'page-size': 'A4',
                   'quiet': '',
@@ -1587,16 +1656,20 @@ if generatepdf is True:
     pdfconfig = pdfkit.configuration(wkhtmltopdf='/usr/local/bin/wkhtmltopdf')
     pdfkit.from_file('index.html', './tmp/doatreport.pdf', configuration=pdfconfig, options=pdfoptions)
 
+# If Zip generation is enabled then sort all available files into directories, zip the dir and clean up after
 if generatezip is True:
     subprocess.call("cp -r tmp archive; cp config.cfg ./archive; cd archive; mkdir raw_data; mkdir figures; mv *.png ./figures; mv *.csv ./raw_data;  zip -r ../doat_results.zip *; cd ..; mv doat_results.zip ./tmp/; rm -rf archive;",
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.STDOUT,
                     shell=True)
 
+# Create a new html server at localhost and the specified port
 server_address = ('', serverport)
 print("Serving results on port", serverport)
 print("CTRL+c to kill server and exit")
+# Setup the server
 httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
+# Try to serve the report forever until exception
 try:
     httpd.serve_forever()
 except Exception:
