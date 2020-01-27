@@ -51,8 +51,10 @@ _Example DOAT Reports can be seen in the examples directory of this repo_
 
 * 0.8
     * First beta release of DOAT, testing and validation still in progress (95% code coverage)
+    * Will become the release canditate after full testing and validation
 * <0.8
-    * Unversioned development of DOAT (Changes can be seen in commit history)
+    * Unversioned development of DOAT
+    * Changes pre-beta can be seen in commit history
 * proofofconcept (see branch)
     * This was the initial PoC for DOAT to prove that the concept was possible
 
