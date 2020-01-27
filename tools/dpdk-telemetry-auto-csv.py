@@ -106,7 +106,7 @@ class Client:
         try:
             self.socket.recv_fd.bind(self.file_path)
         except socket.error as msg:
-            print ("Error - Socket binding error: " + str(msg) + "\n")
+            print("Error - Socket binding error: " + str(msg) + "\n")
         self.socket.recv_fd.settimeout(2)
         self.socket.send_fd.connect("/var/run/dpdk/rte/telemetry")
         JSON = (API_REG + self.file_path + "\"}}")
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     f = open(csv_path, 'w')
     f.write('time,')
     for key in OBJECTITEMS.keys():
-          f.write(key + ',')
+        f.write(key + ',')
     f.write('\n')
     f.close()
 
