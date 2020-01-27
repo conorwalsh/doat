@@ -43,7 +43,7 @@ _Note: DOAT has only been tested on Ubuntu 18.04_
     ./main.py
     ```
 Example DOAT run:
-![](https://conorwalsh.net/doat/doatrun.png)
+![](/examples/doatrun.png)
 
 _Example DOAT Reports can be seen in the examples directory of this repo_
 
