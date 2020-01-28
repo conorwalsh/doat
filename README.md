@@ -10,7 +10,7 @@
 [![HitCount](http://hits.dwyl.io/conorwalsh/doat.svg)](http://hits.dwyl.io/conorwalsh/doat)
 <!--[![Lines of Code](https://tokei.rs/b1/github/conorwalsh/doat?style=flat-square)]()-->
 
-[DPDK](https://dpdk.org) is a set of C libraries for fast packet processing. DOAT is a tool for analysing and assisting in the optimisation of applications built using DPDK. DOAT is an out of band analysis tool that doesn't require the DPDK app to be changed.
+[DPDK](https://dpdk.org) is a set of C libraries for fast packet processing. DOAT is a tool for analysing and assisting in the optimisation of applications built using DPDK. DOAT is an out of band analysis tool that does not require the DPDK app to be changed.
 
 ## Installation
 
@@ -73,11 +73,11 @@ DOAT is designed to be a platform that can be expanded on by others by adding ex
 Available Optimisation Steps:
 * Memory Bandwidth Optimisation
     * This optimisation step is a process for optimising memory bandwidth usage of a dual threaded DPDK application.
-    * This is based on [this paper](https://software.intel.com/en-us/articles/optimize-memory-usage-in-multi-threaded-data-plane-development-kit-dpdk-applications) which was published by Intel (written by the original DOAT author).
+    * This is based on [this paper](https://software.intel.com/en-us/articles/optimize-memory-usage-in-multi-threaded-data-plane-development-kit-dpdk-applications), which was published by Intel (written by the original DOAT author).
 
-The optimisation steps work by manipulating the options in the DPDK configuration file (commin_base), rebuilding DPDK with these new options and comparing the results. If the results are better the changes are suggested to the user.
+The optimisation steps work by manipulating the options in the DPDK configuration file (common_base), rebuilding DPDK with these new options and comparing the results. If the results are better, the changes are suggested to the user.
 
-_The DPDK common_base file has over 350 options and as more optimisation steps are discovered they can be added to DOAT_
+_The DPDK common_base file has over 350 options and as more suitable optimisation steps are discovered, they can be added to DOAT_
 
 ## Meta
 
@@ -91,7 +91,7 @@ DOAT is distributed under the MIT license. See ``LICENSE`` for more information.
 
 I completed 2 internships with Intel's Network Platforms Group (NPG) and while I was there I did a lot of work related to the optimisation and analysis of various DPDK projects. Some of the projects I worked on were released by Intel [01.org/access-network-dataplanes](https://01.org/access-network-dataplanes). I found the analysis process to be very time consuming and repetitive. I thought these processes would be rife for automation.
 
-As part of the final year of my engineering degree I had to complete a final year project. I partnered with Intel to start the DOAT open-source project for my final year project.
+As part of the final year of my engineering degree, I had to complete a final year project. I collaborated with Intel to start the DOAT open-source project as part of my final year project.
 
 ## Contributing
 
