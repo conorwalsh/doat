@@ -52,7 +52,8 @@ _Example DOAT Reports can be seen in the examples directory of this repo_
 
 * 0.8
     * First beta release of DOAT, testing and validation still in progress (>95% code complete)
-    * Will become the release candidate after full testing and validation
+    * Likely to be few changes before release candidate (0.9)
+    * Testing and validation still in progress
     * Beta Release
 * <0.8
     * Un-versioned development of DOAT
