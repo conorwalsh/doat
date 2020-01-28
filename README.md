@@ -22,7 +22,7 @@
     ```sh 
     apt-get install ipmitool
     ```
-* Install wkhtmltopdf (Used for PDF reports ignore if not needed):
+* Install wkhtmltopdf (Used for PDF reports ignore if PDF reports not needed):
 
     [wkhtmltopdf.org](https://wkhtmltopdf.org/)
 * Clone Project:
@@ -46,6 +46,8 @@ _Note: DOAT has only been tested on Ubuntu 18.04_
 Example DOAT run:
 ![](/examples/doatrun.png)
 
+[Example DOAT Report](/examples/doatreport.pdf)
+
 _Example DOAT Reports can be seen in the examples directory of this repo_
 
 ## Release History
@@ -63,6 +65,19 @@ _Example DOAT Reports can be seen in the examples directory of this repo_
     * Alpha Release
 * proofofconcept
     * This was the initial PoC for DOAT to prove that the concept was possible
+
+## Optimisation
+
+DOAT is designed to be a platform that can be expanded on by others by adding extra analysis tools or optimisation steps.
+
+Available Optimisation Steps:
+* Memory Bandwidth Optimisation
+    * This optimisation step is a process for optimising memory bandwidth usage of a dual threaded DPDK application.
+    * This is based on [this paper](https://software.intel.com/en-us/articles/optimize-memory-usage-in-multi-threaded-data-plane-development-kit-dpdk-applications) which was published by Intel (written by the original DOAT author).
+
+The optimisation steps work by manipulating the options in the DPDK configuration file (commin_base), rebuilding DPDK with these new options and comparing the results. If the results are better the changes are suggested to the user.
+
+_The DPDK common_base file has over 350 options and as more optimisation steps are discovered they can be added to DOAT_
 
 ## Meta
 
