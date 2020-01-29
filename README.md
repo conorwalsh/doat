@@ -1,9 +1,9 @@
 # <img src="/webcomponents/doat_logo.png" height="120" />
 > DOAT: DPDK Optimisation &amp; Analysis Tool
 
-![Status](https://img.shields.io/badge/status-beta-yellow.svg?style=flat-square)
+![Status](https://img.shields.io/badge/status-rc1-yellow.svg?style=flat-square)
 [![Maintenance](https://img.shields.io/badge/maintained-yes-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
-[![GitHub tag](https://img.shields.io/github/tag/conorwalsh/doat.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
+[![GitHub tag](https://img.shields.io/badge/version-0.9-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
 ![Code Size](https://img.shields.io/github/languages/code-size/conorwalsh/doat.svg?style=flat-square)
 [![GitHub license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/conorwalsh/doat/blob/master/LICENSE)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python3-1f425f.svg?style=flat-square)](https://www.python.org/)
@@ -52,8 +52,11 @@ _Example DOAT Reports can be seen in the examples directory of this repo_
 
 ## Release History
 
+* 0.9
+    * Release Candidate 1
+    * Testing and validation almost complete
 * 0.8
-    * First beta release of DOAT, testing and validation still in progress (>95% code complete)
+    * First beta release of DOAT (>95% code complete)
     * Likely to be few changes before release candidate (0.9)
     * Testing and validation still in progress
     * Beta Release
@@ -76,6 +79,8 @@ Available Optimisation Steps:
     * This is based on [this paper](https://software.intel.com/en-us/articles/optimize-memory-usage-in-multi-threaded-data-plane-development-kit-dpdk-applications), which was published by Intel (written by the original DOAT author).
 
 The optimisation steps work by manipulating the options in the DPDK configuration file (common_base), rebuilding DPDK with these new options and comparing the results. If the results are better, the changes are suggested to the user.
+
+An application that works well for demonstarting the effects of the Memory Bandwidth Optimisation step is the qos_sched_custom app that the author developed and used to test the optimisation for DOAT. The app is available here: [qos_sched_custom](https://github.com/conorwalsh/qos_sched_custom). This app is based on the DPDK Qos Scheduler Sample Application which is designed to showcase what DPDK QoS can do. The app was built to profile the performance of DPDK QoS. The app expands the information that is printed to the user and now displays cycle costs. The app also uses MAC addresses for classifying packets which is easier to use.
 
 _The DPDK common_base file has over 350 options and as more suitable optimisation steps are discovered, they can be added to DOAT_
 
