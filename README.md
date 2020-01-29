@@ -1,4 +1,4 @@
-# DOAT
+# <img src="/examples/doat_logo.png" height="120" />
 > DPDK Optimisation &amp; Analysis Tool
 
 ![Status](https://img.shields.io/badge/status-beta-yellow.svg?style=flat-square)
