@@ -115,6 +115,15 @@ if config['REPORTING'].getboolean('generatezip') is True:
 else:
     print("ZIP Archive generation is disabled")
 
+# Read and store value for doatack
+# This sets if doat will be acknowledged in the reports
+doatack = False
+if config['REPORTING'].getboolean('doatack') is True:
+    doatack = True
+    print("The DOAT Project will be acknowledged in the report")
+else:
+    print("The DOAT Project will not be acknowledged in the report")
+
 # Read and store value for rtesdk
 # This is where the root path of the DPDK build
 rtesdk = os.environ['RTE_SDK']
@@ -1684,14 +1693,23 @@ if openabled is True:
     testheader1 = "<div class='row'><h1 style='font-weight:bold;'>Original DPDK App</h1></div>"
     testheader2 = "<div class='row'><h1 style='font-weight:bold;'>Modified DPDK App</h1></div>"
 
+# Generate acknowledgement html if enabled
+reportheader = ""
+ackhtml = ""
+if doatack is True:
+    reportheader = "<img src='./webcomponents/doat_logo.png' height='49px' name='logo' style='margin-bottom: 11px;'/> Report"
+    ackhtml = "<h2>DOAT Acknowledgement</h2><p><img src='./webcomponents/doat_logo.png' height='80px' name='logo'/></p><p>This report was compiled using the DPDK Optimisation &amp; Analysis Tool or DOAT for short (<i>Pronunciation: d&omacr;t</i>)</p><p>DOAT is a tool for analysing and assisting in the optimisation of applications built using DPDK. DOAT is an out of band analysis tool that does not require the DPDK app being analysed to be changed.</p><p>DOAT was developed by <a href='http://conorwalsh.net' target='_blank'>Conor Walsh (conor@conorwalsh.net</a> as part of his final year project for his degree in Electronic and Computer Engineering at the University of Limerick. Hardware and guidance for the project was provided by the Networks Platform Group in Intel (Shannon, Ireland).</p><p>DOAT is available as an open source project: <a href='https://github.com/conorwalsh/doat/' name='git' target='_blank'>github.com/conorwalsh/doat</a></p>"
+else:
+    reportheader = "DOAT Report"
+
 # Create a html file to save the html report
 indexfile = open("index.html", "w")
 # Write all parts of the report to the html file
 indexfile.write("<html><head><title>DOAT Report</title><link rel='stylesheet'" +
                 "href='./webcomponents/bootstrap.341.min.css'><script src='./webcomponents/jquery.341.min.js'>" +
                 "</script><script src='./webcomponents/bootstrap.341.min.js'></script>" +
-                "<style>@media print{a{display:none!important}img{width:100%!important}}</style>" +
-                "</head><body><div class='jumbotron text-center'><h1>DOAT Report</h1><p style='font-size: 14px'>" +
+                "<style>@media print{a:not([name='git']){display:none!important}img:not([name='logo']){width:100%!important}}</style>" +
+                "</head><body><div class='jumbotron text-center'><h1>" + reportheader + "</h1><p style='font-size: 14px'>" +
                 "DPDK Optimisation & Analysis Tool</p><p>Report compiled at " + reporttime1 + " using " +
                 str(format(datapoints, ",")) + " data points</p>" +
                 projectdetailshtml +
@@ -1708,7 +1726,7 @@ indexfile.write("<html><head><title>DOAT Report</title><link rel='stylesheet'" +
                 ophtml +
                 "<div class='row'><h2>Test Configuration</h2>" +
                 ((json2html.convert(json=(str({section: dict(config[section]) for section in config.sections()})).replace("\'", "\""))).replace("border=\"1\"", "")).replace("table", "table class=\"table\"", 1) +
-                "</div><div class='row' style='page-break-after: always;'>" + reporthtml + "</div>" +
+                "</div><div class='row'>" + ackhtml + "</div><br/><div class='row'>" + reporthtml + "</div>" +
                 "</div></body></html>")
 # Close the html file
 indexfile.close()
