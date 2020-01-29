@@ -1698,7 +1698,15 @@ reportheader = ""
 ackhtml = ""
 if doatack is True:
     reportheader = "<img src='./webcomponents/doat_logo.png' height='49px' name='logo' style='margin-bottom: 11px;'/> Report"
-    ackhtml = "<h2>DOAT Acknowledgement</h2><p><img src='./webcomponents/doat_logo.png' height='80px' name='logo'/></p><p>This report was compiled using the DPDK Optimisation &amp; Analysis Tool or DOAT for short (<i>Pronunciation: d&omacr;t</i>)</p><p>DOAT is a tool for analysing and assisting in the optimisation of applications built using DPDK. DOAT is an out of band analysis tool that does not require the DPDK app being analysed to be changed.</p><p>DOAT was developed by <a href='http://conorwalsh.net' target='_blank'>Conor Walsh (conor@conorwalsh.net</a> as part of his final year project for his degree in Electronic and Computer Engineering at the University of Limerick. Hardware and guidance for the project was provided by the Networks Platform Group in Intel (Shannon, Ireland).</p><p>DOAT is available as an open source project: <a href='https://github.com/conorwalsh/doat/' name='git' target='_blank'>github.com/conorwalsh/doat</a></p>"
+    ackhtml = "<h2>DOAT Acknowledgement</h2><p><img src='./webcomponents/doat_logo.png' height='80px' name='logo'/></p>" +\
+              "<p>This report was compiled using the DPDK Optimisation &amp; Analysis Tool or DOAT for short (<i>Pronunciation: d&omacr;t</i>)</p>" +\
+              "<p>DOAT is a tool for analysing and assisting in the optimisation of applications built using DPDK. " +\
+              "DOAT is an out of band analysis tool that does not require the DPDK app being analysed to be changed.</p>" +\
+              "<p>DOAT was developed by <a href='http://conorwalsh.net' target='_blank'>Conor Walsh (conor@conorwalsh.net</a>" +\
+              "as part of his final year project for his degree in Electronic and Computer Engineering at the University of Limerick. " +\
+              "Hardware and guidance for the project was provided by the Networks Platform Group in Intel (Shannon, Ireland).</p>" +\
+              "<p>DOAT is available as an open source project: <a href='https://github.com/conorwalsh/doat/' name='git' target='_blank'>" +\
+              "github.com/conorwalsh/doat</a></p>"
 else:
     reportheader = "DOAT Report"
 
