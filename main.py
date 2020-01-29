@@ -4,7 +4,7 @@
 
  main.py
 
- DOAT Version: v0.8
+ DOAT Version: v0.9 (rc1)
 
  This is the main file for the DOAT platform
  The DPDK Optimisation and Analysis Tool (DOAT) is an out-of-band tool for analysing
@@ -32,6 +32,7 @@ import pdfkit
 from json2html import *
 import fileinput
 import time
+import re
 
 # Print startup message
 doat_motd()
@@ -210,6 +211,9 @@ elif openabled is True:
 #   will abort if any of the configuration options are incorrect
 #   instructions are given to the user about how to rectify the problem
 memop = False
+newcache = ""
+cacheorig = ""
+cacheadjust = False
 if config['OPTIMISATION'].getboolean('memop') is True and openabled is True:
     stacklibcompiled = subprocess.check_output("cat $RTE_SDK/config/common_base | grep -m1 CONFIG_RTE_LIBRTE_STACK=",
                                                shell=True).decode(sys.stdout.encoding).rstrip().strip()[-1:]
@@ -219,9 +223,18 @@ if config['OPTIMISATION'].getboolean('memop') is True and openabled is True:
     memdriver = subprocess.check_output(
         "cat $RTE_SDK/config/common_base | grep -m1 CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS=", shell=True).decode(
         sys.stdout.encoding).rstrip().strip()
+    cacheorig = str(re.sub('[^0-9]','', subprocess.check_output(
+        "cat $RTE_SDK/config/common_base | grep -m1 CONFIG_RTE_MEMPOOL_CACHE_MAX_SIZE=", shell=True).decode(
+        sys.stdout.encoding).rstrip().strip()))
     if stacklibcompiled is "y" and stackdrivercomplied is "y" and "ring_mp_mc" in memdriver:
         memop = True
         print("Memory Optimisation Step is enabled (LIBRTE_STACK and RTE_DRIVER_MEMPOOL_STACK are compiled")
+        if config['OPTIMISATION'].getboolean('cacheadjust') is True:
+            newcache = str(config['OPTIMISATION']['newcache'])
+            cacheadjust = True
+            print("Mempool cache will be adjusted as part of the Memory Optimisation Step. New Cache Size:", newcache, "\b, Original Cache Size:", cacheorig)
+        else:
+            print("Mempool cache will not be adjusted as part of the Memory Optimisation Step")
     elif stacklibcompiled is "n":
         print("Memory Optimisation Step is disabled (LIBRTE_STACK is not compiled, set CONFIG_RTE_LIBRTE_STACK=y)")
     elif stackdrivercomplied is "n":
@@ -983,6 +996,9 @@ if openabled is True and stepsenabled is True:
         # Change mempool type
         if "CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS" in line and memop is True:
             sys.stdout.write('CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS="stack"\n')
+        # Disable mempool cache
+        elif "CONFIG_RTE_MEMPOOL_CACHE_MAX_SIZE" in line and memop is True and cacheadjust is True:
+            sys.stdout.write('CONFIG_RTE_MEMPOOL_CACHE_MAX_SIZE=' + newcache + '\n')
         # As more steps are added then more elif's will be added here
         else:
             sys.stdout.write(line)
@@ -1635,6 +1651,8 @@ if openabled is True and stepsenabled is True:
     for line in fileinput.FileInput(rtesdk + "/config/common_base", inplace=1):
         if "CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS" in line and memop is True:
             sys.stdout.write('CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS="ring_mp_mc"\n')
+        elif "CONFIG_RTE_MEMPOOL_CACHE_MAX_SIZE" in line and memop is True and cacheadjust is True:
+            sys.stdout.write('CONFIG_RTE_MEMPOOL_CACHE_MAX_SIZE=' + cacheorig + '\n')
         else:
             sys.stdout.write(line)
 
