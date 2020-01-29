@@ -1,5 +1,5 @@
 # <img src="/examples/doat_logo.png" height="120" />
-> DPDK Optimisation &amp; Analysis Tool
+> DOAT: DPDK Optimisation &amp; Analysis Tool
 
 ![Status](https://img.shields.io/badge/status-beta-yellow.svg?style=flat-square)
 [![Maintenance](https://img.shields.io/badge/maintained-yes-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
@@ -10,7 +10,7 @@
 [![HitCount](http://hits.dwyl.io/conorwalsh/doat.svg)](http://hits.dwyl.io/conorwalsh/doat)
 <!--[![Lines of Code](https://tokei.rs/b1/github/conorwalsh/doat?style=flat-square)]()-->
 
-[DPDK](https://dpdk.org) is a set of C libraries for fast packet processing. DOAT is a tool for analysing and assisting in the optimisation of applications built using DPDK. DOAT is an out of band analysis tool that does not require the DPDK app to be changed.
+[DPDK](https://dpdk.org) is a set of C libraries for fast packet processing. DOAT (_Pronunciation: d&omacr;t_) is a tool for analysing and assisting in the optimisation of applications built using DPDK. DOAT is an out of band analysis tool that does not require the DPDK app to be changed.
 
 ## Installation
 
