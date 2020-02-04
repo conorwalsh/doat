@@ -4,7 +4,7 @@
 
  main.py
 
- DOAT Version: v0.9 (rc1)
+ DOAT Version: v1.0
 
  This is the main file for the DOAT platform
  The DPDK Optimisation and Analysis Tool (DOAT) is an out-of-band tool for analysing
