@@ -49,9 +49,7 @@ def doat_motd():
     print("   DPDK Optimisation and Analysis Tool")
     # Print Author and Year
     print("          (c) Conor Walsh "+str(now.year)+"\n")
-    print("           Release Candidate 1")
-    print("          Not for production use")
-    print("             DO NOT DEPLOY!\n")
+    print("                Version 1.0\n")
 
 
 # Function to check if the required environment variables are set

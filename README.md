@@ -1,9 +1,9 @@
 # <img src="/webcomponents/doat_logo.png" height="120" />
 > DOAT: DPDK Optimisation &amp; Analysis Tool
 
-![Status](https://img.shields.io/badge/status-rc1-yellow.svg?style=flat-square)
+![Status](https://img.shields.io/badge/status-released-green.svg?style=flat-square)
 [![Maintenance](https://img.shields.io/badge/maintained-yes-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
-[![GitHub tag](https://img.shields.io/badge/version-0.9-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
+[![GitHub tag](https://img.shields.io/badge/version-1.0-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
 ![Code Size](https://img.shields.io/github/languages/code-size/conorwalsh/doat.svg?style=flat-square)
 [![GitHub license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/conorwalsh/doat/blob/master/LICENSE)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python3-1f425f.svg?style=flat-square)](https://www.python.org/)
@@ -52,6 +52,9 @@ _Example DOAT Reports can be seen in the examples directory of this repo_
 
 ## Release History
 
+* 1.0
+    * First full release of DOAT
+    * Testing and validation complete
 * 0.9
     * Release Candidate 1
     * Testing and validation almost complete
