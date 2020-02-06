@@ -5,10 +5,10 @@
 [![Maintenance](https://img.shields.io/badge/maintained-yes-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
 [![GitHub tag](https://img.shields.io/badge/version-1.0-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
 ![Code Size](https://img.shields.io/github/languages/code-size/conorwalsh/doat.svg?style=flat-square)
+[![Lines of Code](https://tokei.rs/b1/github/conorwalsh/doat?style=flat-square)]()
 [![GitHub license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/conorwalsh/doat/blob/master/LICENSE)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python3-1f425f.svg?style=flat-square)](https://www.python.org/)
 [![HitCount](http://hits.dwyl.io/conorwalsh/doat.svg)](http://hits.dwyl.io/conorwalsh/doat)
-<!--[![Lines of Code](https://tokei.rs/b1/github/conorwalsh/doat?style=flat-square)]()-->
 
 [DPDK](https://dpdk.org) is a set of C libraries for fast packet processing. DOAT (_Pronunciation: d&omacr;t_) is a tool for analysing and assisting in the optimisation of applications built using DPDK. DOAT is an out of band analysis tool that does not require the DPDK app to be changed.
 
