@@ -40,6 +40,7 @@ _Note: DOAT has only been tested on Ubuntu 18.04_
 
 * Update the configuration options in _config.cfg_
 * Update the platform setup to reflect the _config.cfg_
+* Start your Traffic Generator and set the traffic rate to your calculated Zero Packet Loss (ZPL) rate as DOAT does not control traffic flow
 * Run DOAT
     ```sh
     ./main.py
