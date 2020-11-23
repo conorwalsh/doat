@@ -2,7 +2,7 @@
 > DOAT: DPDK Optimisation &amp; Analysis Tool
 
 ![Status](https://img.shields.io/badge/status-needs%20update-orange.svg?style=flat-square)
-[![Maintenance](https://img.shields.io/badge/maintained-yes%20(needs%20but%20update)-orange.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
+[![Maintenance](https://img.shields.io/badge/maintained-yes%20but%20needs%20update-orange.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
 [![GitHub tag](https://img.shields.io/badge/version-1.0-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
 ![Code Size](https://img.shields.io/github/languages/code-size/conorwalsh/doat.svg?style=flat-square)
 [![Lines of Code](https://tokei.rs/b1/github/conorwalsh/doat?style=flat-square)]()
