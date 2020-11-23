@@ -1,17 +1,20 @@
 # <img src="/webcomponents/doat_logo.png" height="120" />
 > DOAT: DPDK Optimisation &amp; Analysis Tool
 
-![Status](https://img.shields.io/badge/status-released-green.svg?style=flat-square)
-[![Maintenance](https://img.shields.io/badge/maintained-yes-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
+![Status](https://img.shields.io/badge/status-needs%20update-orange.svg?style=flat-square)
+[![Maintenance](https://img.shields.io/badge/maintained-yes%20(needs%20but%20update)-orange.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
 [![GitHub tag](https://img.shields.io/badge/version-1.0-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
 ![Code Size](https://img.shields.io/github/languages/code-size/conorwalsh/doat.svg?style=flat-square)
 [![Lines of Code](https://tokei.rs/b1/github/conorwalsh/doat?style=flat-square)]()
 [![GitHub license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/conorwalsh/doat/blob/master/LICENSE)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python3-1f425f.svg?style=flat-square)](https://www.python.org/)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3664801.svg?style=flat-square)](https://doi.org/10.5281/zenodo.3664801)
+<!--[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3664801.svg?style=flat-square)](https://doi.org/10.5281/zenodo.3664801)-->
 <!--[![HitCount](http://hits.dwyl.io/conorwalsh/doat.svg)](http://hits.dwyl.io/conorwalsh/doat)-->
 
 [DPDK](https://dpdk.org) is a set of C libraries for fast packet processing. DOAT (_Pronunciation: d&omacr;t_) is a tool for analysing and assisting in the optimisation of applications built using DPDK. DOAT is an out of band analysis tool that does not require the DPDK app to be changed.
+
+## WARNING
+From DPDK 20.11 onwards ``make`` is no longer supported. Sections of this project need to be rewritten to use the new meson build system. In its current state this project will not run with DPDK 20.11
 
 ## Installation
 
