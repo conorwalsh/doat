@@ -33,8 +33,11 @@ TELEMETRY_VERSION = "v2"
 DEFAULT_RT = 10.0
 DEFAULT_ST = 0.25
 DEFAULT_CSV = "tmp/telemetry.csv"
-DEFAULT_PORT=0
-METRICS = ["tx_good_packets","tx_good_bytes","rx_errors","tx_errors","rx_management_dropped","tx_size_64_packets","tx_size_65_to_127_packets","tx_size_128_to_255_packets","tx_size_256_to_511_packets","tx_size_512_to_1023_packets","tx_size_1024_to_max_packets"]
+DEFAULT_PORT = 0
+METRICS = ["tx_good_packets", "tx_good_bytes", "rx_errors", "tx_errors",
+           "rx_management_dropped", "tx_size_64_packets", "tx_size_65_to_127_packets",
+           "tx_size_128_to_255_packets", "tx_size_256_to_511_packets",
+           "tx_size_512_to_1023_packets", "tx_size_1024_to_max_packets"]
 
 
 def read_socket(sock, buf_len, echo=True):
@@ -69,7 +72,7 @@ def handle_socket(path):
         sock.send("/ethdev/xstats,{}".format(port).encode())
         data = read_socket(sock, output_buf_len, False)
         f = open(csv_path, 'a+')
-        f.write(str(currenttime)+',')
+        f.write(str(currenttime) + ',')
         for metric in METRICS:
             data1 = data['/ethdev/xstats'][metric]
             f.write(str(data1) + ',')
@@ -78,6 +81,7 @@ def handle_socket(path):
         time.sleep(sleep_time)
         currenttime += sleep_time
     sock.close()
+
 
 def main():
     global run_time
@@ -101,8 +105,8 @@ def main():
         print("Test length: " + str(run_time) + " seconds")
         print("Test step size: " + str(sleep_time) + " seconds")
         print("Port: " + str(port))
-    
-    # Create directory if it doesnt exist
+
+    # Create directory if it doesn't exist
     if not os.path.exists("tmp"):
         os.makedirs('tmp')
 
@@ -123,8 +127,9 @@ def main():
         handle_socket(f)
     # Path to sockets for processes run as a regular user
     for f in glob.glob('%s/dpdk/*/dpdk_telemetry.%s' %
-                    (os.environ.get('XDG_RUNTIME_DIR', '/tmp'), TELEMETRY_VERSION)):
+                       (os.environ.get('XDG_RUNTIME_DIR', '/tmp'), TELEMETRY_VERSION)):
         handle_socket(f)
+
 
 if __name__ == "__main__":
     main()

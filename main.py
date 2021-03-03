@@ -19,7 +19,9 @@
 
 """
 
-from doatFunctions import *
+from doatFunctions import check_pid, doat_motd, progress_bar, kill_group_pid
+import sys
+import os
 import subprocess
 import configparser
 import pandas
@@ -187,7 +189,7 @@ if config['OPTIMISATION'].getboolean('memop') is True and openabled is True:
     memdriver = subprocess.check_output(
         "cat {}/config/rte_config.h | grep -m1 RTE_MBUF_DEFAULT_MEMPOOL_OPS ".format(dpdklocation), shell=True).decode(
         sys.stdout.encoding).rstrip().strip()
-    cacheorig = str(re.sub('[^0-9]','', subprocess.check_output(
+    cacheorig = str(re.sub('[^0-9]', '', subprocess.check_output(
         "cat {}/config/rte_config.h | grep -m1 RTE_MEMPOOL_CACHE_MAX_SIZE ".format(dpdklocation), shell=True).decode(
         sys.stdout.encoding).rstrip().strip()))
     if "ring_mp_mc" in memdriver:
@@ -287,21 +289,18 @@ else:
     sys.exit("No PCM directory was specified (pcmdir in config.cfg), ABORT!")
 
 # All of the test results are stored in a tmp directory while
-#   while DOAT is running, create the dir if it doesnt exist
+#   while DOAT is running, create the dir if it doesn't exist
 if not os.path.exists("tmp"):
     os.makedirs('tmp')
 
 # Store the original cpu affinity that programs are launched with
 #   before we pin DOAT to a core this means we can unpin DOAT
-cpuafforig = subprocess.check_output("taskset -cp " +
-                                     str(os.getpid()),
+cpuafforig = subprocess.check_output("taskset -cp " + str(os.getpid()),
                                      shell=True).decode(sys.stdout.encoding).rstrip().split(':', 1)[-1].strip()
 print("\nOriginal CPU Affinity: " + cpuafforig)
 
 # Pin DOAT to the core specified by the user
-subprocess.call("taskset -cp " +
-                str(testcore) + " " +
-                str(os.getpid()),
+subprocess.call("taskset -cp " + str(testcore) + " " + str(os.getpid()),
                 shell=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL)
@@ -372,7 +371,9 @@ pcm = subprocess.Popen(pcmdir + 'pcm.x ' + str(teststepsize) + ' -csv=tmp/pcm.cs
 
 # Spawn ipmitool in a new process
 # IPMItool is used to measure platform power usage
-wallp = subprocess.Popen("echo 'power,time\n' > tmp/wallpower.csv; while true; do ipmitool sdr | grep 'PS1 Input Power' | cut -c 20- | cut -f1 -d 'W' | tr -d '\n' | sed 's/.$//' >> tmp/wallpower.csv; echo -n ',' >> tmp/wallpower.csv; date +%s >> tmp/wallpower.csv; sleep " +
+wallp = subprocess.Popen("echo 'power,time\n' > tmp/wallpower.csv; while true; do ipmitool sdr | grep 'PS1 Input Power'" +
+                         " | cut -c 20- | cut -f1 -d 'W' | tr -d '\n' | sed 's/.$//' >> tmp/wallpower.csv;" +
+                         " echo -n ',' >> tmp/wallpower.csv; date +%s >> tmp/wallpower.csv; sleep " +
                          str(teststepsize) + "   ; done",
                          stdout=subprocess.DEVNULL,
                          stderr=subprocess.STDOUT,
@@ -561,7 +562,7 @@ plt.legend()
 plt.ylim(bottom=0)
 plt.xlim(left=0)
 # Set upper x and y limit
-plt.ylim(top=(max(socketwrite) + 100))
+plt.ylim(top=(max([max(socketread), max(socketwrite)]) + 100))
 plt.xlim(right=max(socketx))
 # Save the figure in the tmp dir
 plt.savefig("./tmp/membw.png", bbox_inches="tight")
@@ -733,7 +734,7 @@ for i, x in enumerate(l2hitcoreavg):
 # If telemetry is enabled then do telemetry calculations
 telemhtml = ""
 telemdatapoints = 0
-if telemetryenabled is True:
+if telemetryenabled:
     # Read telemetry data from CSV
     telemdata = pandas.read_csv('tmp/telemetry.csv', sep=',', low_memory=False)
     # Calculate telemetry datapoints
@@ -936,7 +937,7 @@ if memop is True:
     stepsenabled = True
 
 # If optimisation and any optimisation steps are enabled then perform optimisation
-if openabled is True and stepsenabled is True:
+if openabled and stepsenabled:
     # Rewrite DPDK configuration (common_base) with updated options
     print("\nModifying DPDK Configuration")
     for line in fileinput.FileInput(dpdklocation + "/config/rte_config.h", inplace=1):
@@ -953,9 +954,7 @@ if openabled is True and stepsenabled is True:
     # Set the CPU Affinity for DOAT back to normal this will speed up the build of DPDK as it will run
     #   on all available cores instead of one (In tests while pinned build took ~15 mins while unpinned
     #   took ~2 mins)
-    subprocess.call("taskset -cp " +
-                    cpuafforig + " " +
-                    str(os.getpid()),
+    subprocess.call("taskset -cp " + cpuafforig + " " + str(os.getpid()),
                     shell=True,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL)
@@ -981,9 +980,7 @@ if openabled is True and stepsenabled is True:
         time.sleep(0.1)
 
     # Pin DOAT to specified core again
-    subprocess.call("taskset -cp " +
-                    str(testcore) + " " +
-                    str(os.getpid()),
+    subprocess.call("taskset -cp " + str(testcore) + " " + str(os.getpid()),
                     shell=True,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL)
@@ -1025,20 +1022,22 @@ if openabled is True and stepsenabled is True:
                              shell=True,
                              preexec_fn=os.setsid)
 
-    opwallp = subprocess.Popen("echo 'power,time\n' > tmp/wallpower_op.csv; while true; do ipmitool sdr | grep 'PS1 Input Power' | cut -c 20- | cut -f1 -d 'W' | tr -d '\n' | sed 's/.$//' >> tmp/wallpower_op.csv; echo -n ',' >> tmp/wallpower_op.csv; date +%s >> tmp/wallpower_op.csv; sleep " +
+    opwallp = subprocess.Popen("echo 'power,time\n' > tmp/wallpower_op.csv; while true; do ipmitool sdr | grep 'PS1 Input Power'" +
+                               " | cut -c 20- | cut -f1 -d 'W' | tr -d '\n' | sed 's/.$//' >> tmp/wallpower_op.csv; " +
+                               "echo -n ',' >> tmp/wallpower_op.csv; date +%s >> tmp/wallpower_op.csv; sleep " +
                                str(teststepsize) + "; done",
                                stdout=subprocess.DEVNULL,
                                stderr=subprocess.STDOUT,
                                shell=True,
                                preexec_fn=os.setsid)
 
-    if telemetryenabled is True:
+    if telemetryenabled:
         optelem = subprocess.Popen('./tools/dpdk-telemetry-auto-csv.py tmp/telemetry_op.csv ' +
-                                    str(testruntime + 2) + ' ' + str(teststepsize) + ' ' + str(telemetryport),
-                                    stdout=subprocess.DEVNULL,
-                                    stderr=subprocess.STDOUT,
-                                    shell=True,
-                                    preexec_fn=os.setsid)
+                                   str(testruntime + 2) + ' ' + str(teststepsize) + ' ' + str(telemetryport),
+                                   stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.STDOUT,
+                                   shell=True,
+                                   preexec_fn=os.setsid)
 
     progress_bar(2)
 
@@ -1208,7 +1207,7 @@ if openabled is True and stepsenabled is True:
     plt.legend()
     plt.ylim(bottom=0)
     plt.xlim(left=0)
-    plt.ylim(top=(max(socketwrite) + 100))
+    plt.ylim(top=(max([max(socketread), max(socketwrite)]) + 100))
     plt.xlim(right=max(opsocketx))
     plt.savefig("./tmp/membw_op.png", bbox_inches="tight")
 
@@ -1549,8 +1548,7 @@ if openabled is True and stepsenabled is True:
             optelemhtml += "<h3 style='color:red;font-weight:bold;'>RX Dropped Packets: " +\
                            str(optelemrxdropped) + " (" + '{0:+0d}'.format(optelemrxdroppeddiff) + ")</h3>"
     else:
-        #optelemhtml += "<h2>Telemetry</h2><p style='color:red'>Telemetry is disabled</p>"
-        optelemhtml += ""
+        optelemhtml += "<h2>Telemetry</h2><p style='color:red'>Telemetry is disabled</p>"
 
     oprechtml = "<h2>Optimisation Recommendations</h2>"
     # Generate op recommendations
@@ -1558,23 +1556,23 @@ if openabled is True and stepsenabled is True:
     #   Then recommend mem op if not dont recommend
     if ((opsocketreadavgdiff < -25.0) and (opsocketwriteavgdiff < -25.0) and
             (optelemthroughputavgdiff > -0.2) and optelemrxdropped <= 0):
-        oprechtml += "<p>It is recommended to change from ring mempools to stack mempools based on the optimisation " +\
-                     "results.<br/>This can be done by setting RTE_MBUF_DEFAULT_MEMPOOL_OPS=\"stack\" in the " +\
-                     "DPDK common_base file.</br>Please manually review this report to confirm that this " +\
-                     "recommendation is right for your project.</p>"
+        oprechtml += "<p>It is recommended to change from ring mempools to stack mempools based on the optimisation "\
+                     + "results.<br/>This can be done by setting RTE_MBUF_DEFAULT_MEMPOOL_OPS=\"stack\" in the "\
+                     + "DPDK common_base file.</br>Please manually review this report to confirm that this "\
+                     + "recommendation is right for your project.</p>"
     else:
-        oprechtml += "<p>It is recommended not to change from ring mempools to stack mempools based on the " +\
-                     "optimisation results</p>"
+        oprechtml += "<p>It is recommended not to change from ring mempools to stack mempools based on the "\
+                     + "optimisation results</p>"
 
     # Generate optimisation html
-    ophtml = "<div class='row' style='page-break-after: always;'>" + opmembwhtml + "</div>" + \
-             "<div class='row' style='page-break-after: always;'>" + opwallpowerhtml + "</div>" + \
-             "<div class='row' style='page-break-after: always;'>" + opl3misshtml + "</div>" + \
-             "<div class='row' style='page-break-after: always;'>" + opl3hithtml + "</div>" + \
-             "<div class='row' style='page-break-after: always;'>" + opl2misshtml + "</div>" + \
-             "<div class='row' style='page-break-after: always;'>" + opl2hithtml + "</div>" + \
-             "<div class='row'>" + optelemhtml + "</div>" + \
-             "<div class='row' style='page-break-after: always;'>" + oprechtml + "</div>"
+    ophtml = "<div class='row' style='page-break-after: always;'>" + opmembwhtml + "</div>"\
+             + "<div class='row' style='page-break-after: always;'>" + opwallpowerhtml + "</div>"\
+             + "<div class='row' style='page-break-after: always;'>" + opl3misshtml + "</div>"\
+             + "<div class='row' style='page-break-after: always;'>" + opl3hithtml + "</div>"\
+             + "<div class='row' style='page-break-after: always;'>" + opl2misshtml + "</div>"\
+             + "<div class='row' style='page-break-after: always;'>" + opl2hithtml + "</div>"\
+             + "<div class='row'>" + optelemhtml + "</div>"\
+             + "<div class='row' style='page-break-after: always;'>" + oprechtml + "</div>"
 
     # Calculate op datapoints
     opdatapoints = oppcmdatapoints + opwallpdatapoints + optelemdatapoints
@@ -1590,9 +1588,7 @@ if openabled is True and stepsenabled is True:
             sys.stdout.write(line)
 
     # Unpin DOAT for DPDK build
-    subprocess.call("taskset -cp " +
-                    cpuafforig + " " +
-                    str(os.getpid()),
+    subprocess.call("taskset -cp " + cpuafforig + " " + str(os.getpid()),
                     shell=True,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL)
@@ -1708,7 +1704,9 @@ if generatepdf is True:
 
 # If Zip generation is enabled then sort all available files into directories, zip the dir and clean up after
 if generatezip is True:
-    subprocess.call("cp -r tmp archive; cp config.cfg ./archive; cd archive; mkdir raw_data; mkdir figures; mv *.png ./figures; mv *.csv ./raw_data;  zip -r ../doat_results.zip *; cd ..; mv doat_results.zip ./tmp/; rm -rf archive;",
+    subprocess.call("cp -r tmp archive; cp config.cfg ./archive; cd archive; mkdir raw_data; " +
+                    "mkdir figures; mv *.png ./figures; mv *.csv ./raw_data;  " +
+                    "zip -r ../doat_results.zip *; cd ..; mv doat_results.zip ./tmp/; rm -rf archive;",
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.STDOUT,
                     shell=True)

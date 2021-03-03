@@ -1,6 +1,7 @@
 # <img src="/webcomponents/doat_logo.png" height="120" />
 > DOAT: DPDK Optimisation &amp; Analysis Tool
 
+![Test Repo](https://github.com/conorwalsh/doat/actions/workflows/test_repo.yaml/badge.svg)
 ![Status](https://img.shields.io/badge/status-released-green.svg?style=flat-square)
 [![Maintenance](https://img.shields.io/badge/maintained-yes-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
 [![GitHub tag](https://img.shields.io/badge/version-20.11-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
@@ -64,6 +65,7 @@ _Example DOAT Reports can be seen in the examples directory of this repo_
     * Dependencies updated
     * Transitioned fully from make to meson as specified by DPDK
     * Updated from DPDK v1 telemetry to v2
+    * CI and automated testing integrated
     * Version of DOAT will now track DPDK (DOAT version should match last DPDK version tested with it)
 * 1.0
     * First full release of DOAT
