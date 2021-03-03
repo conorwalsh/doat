@@ -1,9 +1,9 @@
 # <img src="/webcomponents/doat_logo.png" height="120" />
 > DOAT: DPDK Optimisation &amp; Analysis Tool
 
-![Status](https://img.shields.io/badge/status-needs%20update-orange.svg?style=flat-square)
-[![Maintenance](https://img.shields.io/badge/maintained-yes%20but%20needs%20update-orange.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
-[![GitHub tag](https://img.shields.io/badge/version-1.0-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
+![Status](https://img.shields.io/badge/status-released-green.svg?style=flat-square)
+[![Maintenance](https://img.shields.io/badge/maintained-yes-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
+[![GitHub tag](https://img.shields.io/badge/version-20.11-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
 ![Code Size](https://img.shields.io/github/languages/code-size/conorwalsh/doat.svg?style=flat-square)
 [![Lines of Code](https://tokei.rs/b1/github/conorwalsh/doat?style=flat-square)]()
 [![GitHub license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/conorwalsh/doat/blob/master/LICENSE)
@@ -13,12 +13,13 @@
 
 [DPDK](https://dpdk.org) is a set of C libraries for fast packet processing. DOAT (_Pronunciation: d&omacr;t_) is a tool for analysing and assisting in the optimisation of applications built using DPDK. DOAT is an out of band analysis tool that does not require the DPDK app to be changed.
 
-## WARNING
-From DPDK 20.11 onwards ``make`` is no longer supported. Sections of this project need to be rewritten to use the new meson build system. In its current state this project will not run with DPDK 20.11
-
 ## Installation
 
 ### Linux:
+* Install ZIP:
+    ```sh
+    apt-get install zip
+    ```
 * Install PCM:
 
     [github.com/opcm/pcm](https://github.com/opcm/pcm)
@@ -27,8 +28,9 @@ From DPDK 20.11 onwards ``make`` is no longer supported. Sections of this projec
     apt-get install ipmitool
     ```
 * Install wkhtmltopdf (Used for PDF reports ignore if PDF reports not needed):
-
-    [wkhtmltopdf.org](https://wkhtmltopdf.org/)
+    ```sh
+    apt-get install wkhtmltopdf
+    ```
 * Clone Project:
     ```sh
     git clone https://github.com/conorwalsh/doat.git
@@ -37,7 +39,7 @@ From DPDK 20.11 onwards ``make`` is no longer supported. Sections of this projec
     ```sh
     pip3 install -r requirements.txt
     ```
-_Note: DOAT has only been tested on Ubuntu 18.04_
+_DOAT has been tested on Ubuntu 18.04 and 20.04_
 
 ## Usage
 
@@ -57,6 +59,12 @@ _Example DOAT Reports can be seen in the examples directory of this repo_
 
 ## Release History
 
+* 20.11
+    * DOAT now compatible with DPDK 20.11
+    * Dependencies updated
+    * Transitioned fully from make to meson as specified by DPDK
+    * Updated from DPDK v1 telemetry to v2
+    * Version of DOAT will now track DPDK (DOAT version should match last DPDK version tested with it)
 * 1.0
     * First full release of DOAT
     * Testing and validation complete

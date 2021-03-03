@@ -4,7 +4,7 @@
 
  main.py
 
- DOAT Version: v1.0
+ DOAT Version: v20.11
 
  This is the main file for the DOAT platform
  The DPDK Optimisation and Analysis Tool (DOAT) is an out-of-band tool for analysing
@@ -14,7 +14,7 @@
     1) Setup DOAT by editing the config.cfg file in this directory
     2) Run ./main.py
 
- Copyright (c) 2020 Conor Walsh
+ Copyright (c) 2021 Conor Walsh
  DOAT is licensed under an MIT license (see included license file)
 
 """
@@ -36,9 +36,6 @@ import re
 
 # Print startup message
 doat_motd()
-
-# Check system setup
-sys_check()
 
 # DOAT takes all of its configuration options from the user using a config file (config.cfg)
 # Declare parser and read in config.cfg
@@ -81,7 +78,7 @@ else:
 # This specifies the name of the project for the report
 #   This can be left blank if not required
 projectname = config['REPORTING']['projectname']
-if projectname is not None and projectname is not "":
+if projectname is not None and projectname != "":
     print("\nProject Name:", projectname)
 else:
     print("No project name was specified (projectname in config.cfg), continuing without")
@@ -91,7 +88,7 @@ else:
 #   These can be left blank if not required
 testername = config['REPORTING']['testername']
 testeremail = config['REPORTING']['testeremail']
-if testername is not None and testeremail is not None and testername is not "" and testeremail is not "":
+if testername is not None and testeremail is not None and testername != "" and testeremail != "":
     print("Tester:", testername, '-', testeremail)
 else:
     testername = None
@@ -125,15 +122,13 @@ if config['REPORTING'].getboolean('doatack') is True:
 else:
     print("The DOAT Project will not be acknowledged in the report")
 
-# Read and store value for rtesdk
-# This is where the root path of the DPDK build
-rtesdk = os.environ['RTE_SDK']
-print("\nRTE SDK:", rtesdk)
-
-# Read and store value for rtetarget
-# This is the target that DPDK needs to be built for
-rtetarget = os.environ['RTE_TARGET']
-print("RTE TARGET:", rtetarget)
+# Read and store value for dpdklocation
+# This is the root path of DPDK
+dpdklocation = config['APPPARAM']['dpdklocation']
+if dpdklocation is not None and dpdklocation != "":
+    print("\nDPDK Location:", dpdklocation)
+else:
+    sys.exit("No DPDK location was specified (dpdklocation in config.cfg), ABORT!")
 
 # Read and store value for appcmd (will abort if not present)
 # This is the command or script used to launch your DPDK app
@@ -143,41 +138,23 @@ if appcmd is not None:
 else:
     sys.exit("No DPDK command was specified (appcmd in config.cfg), ABORT!")
 
-# Read and store value for applocation (will abort if not present)
-# This is the root path of your app (not the build folder)
-applocation = config['APPPARAM']['applocation']
-if applocation is not None:
-    print("DPDK app location:", applocation)
-else:
-    sys.exit("No DPDK app location was specified (applocation in config.cfg), ABORT!")
-
-# Check if DPDK has been complied with DPDK or not
-telemenabledraw = subprocess.check_output("cat $RTE_SDK/config/common_base | grep CONFIG_RTE_LIBRTE_TELEMETRY",
-                                          shell=True).decode(sys.stdout.encoding).rstrip().strip()[-1:]
-telemetryenableddpdk = False
-if telemenabledraw is "y":
-    telemetryenableddpdk = True
-
 # Read and store value for telemetryenabled
 # If telemetry statistics are required they can be enabled here
 # If DPDK telemetry is not compiled telemetry will not be enabled
 telemetryenabled = False
-if config['APPPARAM'].getboolean('telemetry') is True and telemetryenableddpdk is True:
+if config['APPPARAM'].getboolean('telemetry') is True:
     telemetryenabled = True
     print("DPDK telemetry is enabled")
-elif telemetryenableddpdk is False:
-    print("Telemetry is disabled in your build of DPDK set CONFIG_RTE_LIBRTE_TELEMETRY=y to use telemetry")
 else:
     print("DPDK telemetry is disabled")
 
-# Read and store value for socketpath
-#   (will abort if not present and telemetry enabled)
-# This is the path to the DPDK apps telemetry socket
-socketpath = config['APPPARAM']['socketpath']
-if socketpath is not None and telemetryenabled is True:
-    print("DPDK app telemetry socket path:", socketpath)
-elif telemetryenabled is True:
-    sys.exit("Telemetry is enabled but socketpath in config.cfg has not been set, ABORT!")
+# Read and store value for telemetryport
+if telemetryenabled is True:
+    telemetryport = int(config['APPPARAM']['telemetryport'])
+    if telemetryport is not None:
+        print("DPDK telemetry port:", telemetryport)
+    else:
+        sys.exit("No port was specified for telemetry (telemetryport in config.cfg), ABORT!")
 
 # Read and store value for openabled
 # To run optimisation it is enabled here
@@ -188,22 +165,14 @@ if config['OPTIMISATION'].getboolean('optimisation') is True:
 else:
     print("\nOptimisation is disabled")
 
-# Read and store value for dpdkmakecmd
+# Read and store value for dpdkbuildcmd
 #   (will abort if not present and optimisation enabled)
 # The command that is run in $RTE_SDK to build DPDK
-dpdkmakecmd = config['OPTIMISATION']['dpdkmakecmd']
-if dpdkmakecmd is not None and openabled is True:
-    print("DPDK Make Command:", dpdkmakecmd)
+dpdkbuildcmd = config['OPTIMISATION']['dpdkbuildcmd']
+if dpdkbuildcmd is not None and openabled is True:
+    print("DPDK Make Command:", dpdkbuildcmd)
 elif openabled is True:
-    sys.exit("Optimisation is enabled but dpdkmakecmd in config.cfg has not been set, ABORT!")
-
-# Read and store value for appmakecmd
-# The command that is run in the main directory of your app to build the app
-appmakecmd = config['OPTIMISATION']['appmakecmd']
-if appmakecmd is not None and openabled is True:
-    print("DPDK App Make Command:", appmakecmd)
-elif openabled is True:
-    sys.exit("Optimisation is enabled but appmakecmd in config.cfg has not been set, ABORT!")
+    sys.exit("Optimisation is enabled but dpdkbuildcmd in config.cfg has not been set, ABORT!")
 
 # Read and store value for memop
 # If this is enabled the memory optimisation step will be run
@@ -215,35 +184,25 @@ newcache = ""
 cacheorig = ""
 cacheadjust = False
 if config['OPTIMISATION'].getboolean('memop') is True and openabled is True:
-    stacklibcompiled = subprocess.check_output("cat $RTE_SDK/config/common_base | grep -m1 CONFIG_RTE_LIBRTE_STACK=",
-                                               shell=True).decode(sys.stdout.encoding).rstrip().strip()[-1:]
-    stackdrivercomplied = subprocess.check_output(
-        "cat $RTE_SDK/config/common_base | grep -m1 CONFIG_RTE_DRIVER_MEMPOOL_STACK=", shell=True).decode(
-        sys.stdout.encoding).rstrip().strip()[-1:]
     memdriver = subprocess.check_output(
-        "cat $RTE_SDK/config/common_base | grep -m1 CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS=", shell=True).decode(
+        "cat {}/config/rte_config.h | grep -m1 RTE_MBUF_DEFAULT_MEMPOOL_OPS ".format(dpdklocation), shell=True).decode(
         sys.stdout.encoding).rstrip().strip()
     cacheorig = str(re.sub('[^0-9]','', subprocess.check_output(
-        "cat $RTE_SDK/config/common_base | grep -m1 CONFIG_RTE_MEMPOOL_CACHE_MAX_SIZE=", shell=True).decode(
+        "cat {}/config/rte_config.h | grep -m1 RTE_MEMPOOL_CACHE_MAX_SIZE ".format(dpdklocation), shell=True).decode(
         sys.stdout.encoding).rstrip().strip()))
-    if stacklibcompiled is "y" and stackdrivercomplied is "y" and "ring_mp_mc" in memdriver:
+    if "ring_mp_mc" in memdriver:
         memop = True
-        print("Memory Optimisation Step is enabled (LIBRTE_STACK and RTE_DRIVER_MEMPOOL_STACK are compiled")
+        print("Memory Optimisation Step is enabled")
         if config['OPTIMISATION'].getboolean('cacheadjust') is True:
             newcache = str(config['OPTIMISATION']['newcache'])
             cacheadjust = True
             print("Mempool cache will be adjusted as part of the Memory Optimisation Step. New Cache Size:", newcache, "\b, Original Cache Size:", cacheorig)
         else:
             print("Mempool cache will not be adjusted as part of the Memory Optimisation Step")
-    elif stacklibcompiled is "n":
-        print("Memory Optimisation Step is disabled (LIBRTE_STACK is not compiled, set CONFIG_RTE_LIBRTE_STACK=y)")
-    elif stackdrivercomplied is "n":
-        print("Memory Optimisation Step is disabled",
-              "(RTE_DRIVER_MEMPOOL_STACK is not compiled, set CONFIG_RTE_DRIVER_MEMPOOL_STACK=y)")
     elif "ring_mp_mc" not in memdriver:
         print("Memory Optimisation Step is disabled",
-              "(CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS is not set to ring, set",
-              "CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS=\"ring_mp_mc\")")
+              "(RTE_MBUF_DEFAULT_MEMPOOL_OPS is not set to ring, set",
+              "RTE_MBUF_DEFAULT_MEMPOOL_OPS=\"ring_mp_mc\")")
 elif openabled is True:
     print("Memory Optimisation Step is disabled")
 
@@ -360,7 +319,7 @@ else:
 
 # Spawn the DPDK app in a new process
 print("Starting DPDK App")
-proc = subprocess.Popen(applocation + appcmd,
+proc = subprocess.Popen(appcmd,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.STDOUT,
                         shell=True,
@@ -423,8 +382,8 @@ wallp = subprocess.Popen("echo 'power,time\n' > tmp/wallpower.csv; while true; d
 # If telemetry is enabled then spawn the telemetry tool in a new process
 # This tool uses the DPDK telemetry API to get statistics about the DPDK app
 if telemetryenabled is True:
-    telem = subprocess.Popen('./tools/dpdk-telemetry-auto-csv.py ' + socketpath + ' tmp/telemetry.csv ' +
-                             str(testruntime + 2) + ' ' + str(teststepsize),
+    telem = subprocess.Popen('./tools/dpdk-telemetry-auto-csv.py tmp/telemetry.csv ' +
+                             str(testruntime + 2) + ' ' + str(teststepsize) + ' ' + str(telemetryport),
                              stdout=subprocess.DEVNULL,
                              stderr=subprocess.STDOUT,
                              shell=True,
@@ -514,8 +473,8 @@ pcmdata = pandas.read_csv('tmp/pcm.csv', low_memory=False)
 pcmdatapoints = pcmdata.shape[0] * pcmdata.shape[1]
 
 # Extract socket memory bandwidth read and write to numpy arrays
-socketread = np.asarray((pcmdata.iloc[:, pcmdata.columns.get_loc("Socket" + str(appsocket)) + 13].tolist())[1:]).astype(np.float) * 1000
-socketwrite = np.asarray((pcmdata.iloc[:, pcmdata.columns.get_loc("Socket" + str(appsocket)) + 14].tolist())[1:]).astype(np.float) * 1000
+socketread = np.asarray((pcmdata.iloc[:, pcmdata.columns.get_loc("Socket " + str(appsocket)) + 13].tolist())[1:]).astype(float) * 1000
+socketwrite = np.asarray((pcmdata.iloc[:, pcmdata.columns.get_loc("Socket " + str(appsocket)) + 14].tolist())[1:]).astype(float) * 1000
 
 # Calculate the average read and write of the memory bandwidth
 socketreadavg = round(sum(socketread) / len(socketread), 2)
@@ -535,13 +494,13 @@ l2hitmasteravg = 0.0
 # If the master core stats are enabled extract the data using pandas
 if appmasterenabled is True:
     l3missmaster = np.asarray((pcmdata.iloc[:, pcmdata.columns.get_loc(
-        "Core" + str(appmaster) + " (Socket " + str(appsocket) + ")") + 4].tolist())[1:]).astype(np.float) * 1000 * 1000
+        "Core" + str(appmaster) + " (Socket " + str(appsocket) + ")") + 4].tolist())[1:]).astype(float) * 1000 * 1000
     l2missmaster = np.asarray((pcmdata.iloc[:, pcmdata.columns.get_loc(
-        "Core" + str(appmaster) + " (Socket " + str(appsocket) + ")") + 5].tolist())[1:]).astype(np.float) * 1000 * 1000
+        "Core" + str(appmaster) + " (Socket " + str(appsocket) + ")") + 5].tolist())[1:]).astype(float) * 1000 * 1000
     l3hitmaster = np.asarray((pcmdata.iloc[:, pcmdata.columns.get_loc(
-        "Core" + str(appmaster) + " (Socket " + str(appsocket) + ")") + 6].tolist())[1:]).astype(np.float) * 100
+        "Core" + str(appmaster) + " (Socket " + str(appsocket) + ")") + 6].tolist())[1:]).astype(float) * 100
     l2hitmaster = np.asarray((pcmdata.iloc[:, pcmdata.columns.get_loc(
-        "Core" + str(appmaster) + " (Socket " + str(appsocket) + ")") + 7].tolist())[1:]).astype(np.float) * 100
+        "Core" + str(appmaster) + " (Socket " + str(appsocket) + ")") + 7].tolist())[1:]).astype(float) * 100
     l3missmasteravg = round(sum(l3missmaster) / len(l3missmaster), 1)
     l2missmasteravg = round(sum(l2missmaster) / len(l2missmaster), 1)
     l3hitmasteravg = round(sum(l3hitmaster) / len(l3hitmaster), 1)
@@ -555,13 +514,13 @@ l2hitcore = []
 # Extract cache data for cores
 for x in appcores:
     l3misscore.append(np.asarray(
-        (pcmdata.iloc[:, pcmdata.columns.get_loc("Core" + str(x) + " (Socket " + str(appsocket) + ")") + 4].tolist())[1:]).astype(np.float) * 1000 * 1000)
+        (pcmdata.iloc[:, pcmdata.columns.get_loc("Core" + str(x) + " (Socket " + str(appsocket) + ")") + 4].tolist())[1:]).astype(float) * 1000 * 1000)
     l2misscore.append(np.asarray(
-        (pcmdata.iloc[:, pcmdata.columns.get_loc("Core" + str(x) + " (Socket " + str(appsocket) + ")") + 5].tolist())[1:]).astype(np.float) * 1000 * 1000)
+        (pcmdata.iloc[:, pcmdata.columns.get_loc("Core" + str(x) + " (Socket " + str(appsocket) + ")") + 5].tolist())[1:]).astype(float) * 1000 * 1000)
     l3hitcore.append(np.asarray(
-        (pcmdata.iloc[:, pcmdata.columns.get_loc("Core" + str(x) + " (Socket " + str(appsocket) + ")") + 6].tolist())[1:]).astype(np.float) * 100)
+        (pcmdata.iloc[:, pcmdata.columns.get_loc("Core" + str(x) + " (Socket " + str(appsocket) + ")") + 6].tolist())[1:]).astype(float) * 100)
     l2hitcore.append(np.asarray(
-        (pcmdata.iloc[:, pcmdata.columns.get_loc("Core" + str(x) + " (Socket " + str(appsocket) + ")") + 7].tolist())[1:]).astype(np.float) * 100)
+        (pcmdata.iloc[:, pcmdata.columns.get_loc("Core" + str(x) + " (Socket " + str(appsocket) + ")") + 7].tolist())[1:]).astype(float) * 100)
 
 # Declare arrays to store average cache info for cores
 l3misscoreavg = []
@@ -621,9 +580,9 @@ wallpdata = pandas.read_csv('tmp/wallpower.csv', sep=',', low_memory=False)
 # Calculate how many datapoints are in the IPMItool CSV
 wallpdatapoints = wallpdata.shape[0] * wallpdata.shape[1]
 # Extract the power data from the CSV
-wallpower = np.asarray(wallpdata["power"].tolist()).astype(np.int)
+wallpower = np.asarray(wallpdata["power"].tolist()).astype(int)
 # Extract the time data from the CSV
-wallpowertime = np.asarray(wallpdata["time"].tolist()).astype(np.int)
+wallpowertime = np.asarray(wallpdata["time"].tolist()).astype(int)
 # Set the starting time for the time to 0
 wallpowertimezero = wallpowertime[0]
 wallpowerx = []
@@ -780,52 +739,44 @@ if telemetryenabled is True:
     # Calculate telemetry datapoints
     telemdatapoints = telemdata.shape[0] * telemdata.shape[1]
     # Extract telemetry data from pandas (packets and bytes information)
-    telempkts = np.asarray(telemdata["tx_good_packets"].tolist()).astype(np.int)
-    telembytes = np.asarray(telemdata["tx_good_bytes"].tolist()).astype(np.int)
-    telemerrors = np.asarray(telemdata["tx_errors"].tolist()).astype(np.int)
-    telemdropped = np.asarray(telemdata["tx_dropped"].tolist()).astype(np.int)
-    telemtime = np.asarray(telemdata["time"].tolist()).astype(np.float)
+    telempkts = np.asarray(telemdata["tx_good_packets"].tolist()).astype(int)
+    telembytes = np.asarray(telemdata["tx_good_bytes"].tolist()).astype(int)
+    telemerrors = np.asarray(telemdata["tx_errors"].tolist()).astype(int)
+    telemtime = np.asarray(telemdata["time"].tolist()).astype(float)
     # Create array for packet distribution using only specific column set
     telempktdist = telemdata.loc[:, ["tx_size_64_packets",
                                      "tx_size_65_to_127_packets",
                                      "tx_size_128_to_255_packets",
                                      "tx_size_256_to_511_packets",
                                      "tx_size_512_to_1023_packets",
-                                     "tx_size_1024_to_1522_packets",
-                                     "tx_size_1523_to_max_packets"]].tail(1).values[0]
+                                     "tx_size_1024_to_max_packets"]].tail(1).values[0]
     # Array of human readable names for packet distribution
     telempktsizes = ["64",
                      "65 to 127",
                      "128 to 255",
                      "256 to 511",
                      "512 to 1024",
-                     "1024 to 1522",
-                     "1523 to max"]
+                     "1024 to max"]
     # Extract error and dropped packet data
     telemrxerrors = telemdata.loc[:, "rx_errors"].tail(1).values[0]
     telemrxerrorsbool = False
     telemtxerrors = telemdata.loc[:, "tx_errors"].tail(1).values[0]
     telemtxerrorsbool = False
-    telemrxdropped = telemdata.loc[:, "rx_dropped"].tail(1).values[0]
+    telemrxdropped = telemdata.loc[:, "rx_management_dropped"].tail(1).values[0]
     telemrxdroppedbool = False
-    telemtxdropped = telemdata.loc[:, "tx_dropped"].tail(1).values[0]
-    telemtxdroppedbool = False
 
     # Warn the user if any TX or RX errors occurred during the test
-    if int(telemrxerrors) is not 0:
+    if int(telemrxerrors) != 0:
         print("ERROR: RX errors occurred during this test (rx_errors: " + str(telemrxerrors) + ")")
         telemrxerrorsbool = True
-    if int(telemtxerrors) is not 0:
+    if int(telemtxerrors) != 0:
         print("ERROR: TX errors occurred during this test (tx_errors: " + str(telemtxerrors) + ")")
         telemtxerrorsbool = True
 
     # Warn the user if any packets were dropped during the test
-    if int(telemrxdropped) is not 0:
-        print("ERROR: RX Packets were dropped during this test (rx_dropped: " + str(telemrxdropped) + ")")
+    if int(telemrxdropped) != 0:
+        print("ERROR: RX Packets were dropped during this test (rx_management_dropped: " + str(telemrxdropped) + ")")
         telemrxdroppedbool = True
-    if int(telemtxdropped) is not 0:
-        print("ERROR: TX Packets were dropped during this test (tx_dropped: " + str(telemtxdropped) + ")")
-        telemtxdroppedbool = True
 
     # Generate the packet distribution figure
     plt.figure(6)
@@ -884,10 +835,10 @@ if telemetryenabled is True:
     telempktssec = []
     for i, y in enumerate(telempktsreset):
         # If not the zeroth or first element calculate and append the pps
-        if i is not 0 and i is not 1:
+        if i != 0 and i != 1:
             telempktssec.append((y - telempktsreset[i - 1]) / teststepsize)
         # If the first element calculate the pps, append it to the array and update zeroth element
-        elif i is 1:
+        elif i == 1:
             val = (y - telempktsreset[i - 1]) / teststepsize
             telempktssec.append(val)
             telempktssec[0] = val
@@ -902,10 +853,10 @@ if telemetryenabled is True:
     telemthroughput = []
     for i, y in enumerate(telembytesreset):
         # If not the zeroth or first element calculate and append the throughput (Note: bits not bytes as per standard)
-        if i is not 0 and i is not 1:
+        if i != 0 and i != 1:
             telemthroughput.append((y - telembytesreset[i - 1]) / 1000000000 * 8 / teststepsize)
         # If the first element calculate the throughput, append it to the array and update zeroth element
-        elif i is 1:
+        elif i == 1:
             val = ((y - telembytesreset[i - 1]) / 1000000000 * 8 / teststepsize)
             telemthroughput.append(val)
             telemthroughput[0] = val
@@ -963,10 +914,6 @@ if telemetryenabled is True:
         telemhtml += "<h3 style='color:green;font-weight:bold;'>RX Dropped Packets: " + str(telemrxdropped) + "</h3>"
     else:
         telemhtml += "<h3 style='color:red;font-weight:bold;'>RX Dropped Packets: " + str(telemrxdropped) + "</h3>"
-    if telemtxdroppedbool is False:
-        telemhtml += "<h3 style='color:green;font-weight:bold;'>TX Dropped Packets: " + str(telemtxdropped) + "</h3>"
-    else:
-        telemhtml += "<h3 style='color:red;font-weight:bold;'>TX Dropped Packets: " + str(telemtxdropped) + "</h3>"
 
 # If telemetry is disabled alert user in the report
 else:
@@ -992,13 +939,13 @@ if memop is True:
 if openabled is True and stepsenabled is True:
     # Rewrite DPDK configuration (common_base) with updated options
     print("\nModifying DPDK Configuration")
-    for line in fileinput.FileInput(rtesdk + "/config/common_base", inplace=1):
+    for line in fileinput.FileInput(dpdklocation + "/config/rte_config.h", inplace=1):
         # Change mempool type
-        if "CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS" in line and memop is True:
-            sys.stdout.write('CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS="stack"\n')
+        if "RTE_MBUF_DEFAULT_MEMPOOL_OPS" in line and memop is True:
+            sys.stdout.write('#define RTE_MBUF_DEFAULT_MEMPOOL_OPS "stack"\n')
         # Disable mempool cache
-        elif "CONFIG_RTE_MEMPOOL_CACHE_MAX_SIZE" in line and memop is True and cacheadjust is True:
-            sys.stdout.write('CONFIG_RTE_MEMPOOL_CACHE_MAX_SIZE=' + newcache + '\n')
+        elif "RTE_MEMPOOL_CACHE_MAX_SIZE" in line and memop is True and cacheadjust is True:
+            sys.stdout.write('#define RTE_MEMPOOL_CACHE_MAX_SIZE ' + str(newcache) + '\n')
         # As more steps are added then more elif's will be added here
         else:
             sys.stdout.write(line)
@@ -1016,7 +963,7 @@ if openabled is True and stepsenabled is True:
 
     # Build DPDK and DPDK app with new DPDK configuration
     print("Building DPDK and DPDK App with new configuration options (This can take several minutes)")
-    dpdkbuild = subprocess.Popen("cd " + rtesdk + "; " + dpdkmakecmd + "; cd " + applocation + "; " + appmakecmd + ";",
+    dpdkbuild = subprocess.Popen("cd " + dpdklocation + "; " + dpdkbuildcmd + ";",
                                  shell=True,
                                  stdout=subprocess.DEVNULL,
                                  stderr=subprocess.DEVNULL)
@@ -1049,7 +996,7 @@ if openabled is True and stepsenabled is True:
     print("Starting DPDK App")
 
     # The process of running the test is the same as done above
-    opproc = subprocess.Popen(applocation + appcmd,
+    opproc = subprocess.Popen(appcmd,
                               stdout=subprocess.DEVNULL,
                               stderr=subprocess.STDOUT,
                               shell=True,
@@ -1086,12 +1033,12 @@ if openabled is True and stepsenabled is True:
                                preexec_fn=os.setsid)
 
     if telemetryenabled is True:
-        optelem = subprocess.Popen('./tools/dpdk-telemetry-auto-csv.py ' + socketpath +
-                                   ' tmp/telemetry_op.csv ' + str(testruntime + 2) + ' ' + str(teststepsize),
-                                   stdout=subprocess.DEVNULL,
-                                   stderr=subprocess.STDOUT,
-                                   shell=True,
-                                   preexec_fn=os.setsid)
+        optelem = subprocess.Popen('./tools/dpdk-telemetry-auto-csv.py tmp/telemetry_op.csv ' +
+                                    str(testruntime + 2) + ' ' + str(teststepsize) + ' ' + str(telemetryport),
+                                    stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.STDOUT,
+                                    shell=True,
+                                    preexec_fn=os.setsid)
 
     progress_bar(2)
 
@@ -1158,8 +1105,8 @@ if openabled is True and stepsenabled is True:
 
     oppcmdatapoints = oppcmdata.shape[0] * oppcmdata.shape[1]
 
-    opsocketread = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc("Socket" + str(appsocket)) + 13].tolist())[1:]).astype(np.float) * 1000
-    opsocketwrite = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc("Socket" + str(appsocket)) + 14].tolist())[1:]).astype(np.float) * 1000
+    opsocketread = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc("Socket " + str(appsocket)) + 13].tolist())[1:]).astype(float) * 1000
+    opsocketwrite = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc("Socket " + str(appsocket)) + 14].tolist())[1:]).astype(float) * 1000
 
     opsocketreadavg = round(sum(opsocketread) / len(opsocketread), 2)
     opsocketwriteavg = round(sum(opsocketwrite) / len(opsocketwrite), 2)
@@ -1183,14 +1130,14 @@ if openabled is True and stepsenabled is True:
     if appmasterenabled is True:
         opl3missmaster = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc(
             "Core" + str(appmaster) + " (Socket " + str(appsocket) + ")") + 4].tolist())[1:]).astype(
-            np.float) * 1000 * 1000
+            float) * 1000 * 1000
         opl2missmaster = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc(
             "Core" + str(appmaster) + " (Socket " + str(appsocket) + ")") + 5].tolist())[1:]).astype(
-            np.float) * 1000 * 1000
+            float) * 1000 * 1000
         opl3hitmaster = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc(
-            "Core" + str(appmaster) + " (Socket " + str(appsocket) + ")") + 6].tolist())[1:]).astype(np.float) * 100
+            "Core" + str(appmaster) + " (Socket " + str(appsocket) + ")") + 6].tolist())[1:]).astype(float) * 100
         opl2hitmaster = np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc(
-            "Core" + str(appmaster) + " (Socket " + str(appsocket) + ")") + 7].tolist())[1:]).astype(np.float) * 100
+            "Core" + str(appmaster) + " (Socket " + str(appsocket) + ")") + 7].tolist())[1:]).astype(float) * 100
         opl3missmasteravg = round(sum(opl3missmaster) / len(opl3missmaster), 1)
         opl3missmasteravgdiff = round((((opl3missmasteravg - l3missmasteravg) / l3missmasteravg) * 100), 1)
         opl2missmasteravg = round(sum(opl2missmaster) / len(opl2missmaster), 1)
@@ -1207,13 +1154,13 @@ if openabled is True and stepsenabled is True:
 
     for x in appcores:
         opl3misscore.append(np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc(
-            "Core" + str(x) + " (Socket " + str(appsocket) + ")") + 4].tolist())[1:]).astype(np.float) * 1000 * 1000)
+            "Core" + str(x) + " (Socket " + str(appsocket) + ")") + 4].tolist())[1:]).astype(float) * 1000 * 1000)
         opl2misscore.append(np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc(
-            "Core" + str(x) + " (Socket " + str(appsocket) + ")") + 5].tolist())[1:]).astype(np.float) * 1000 * 1000)
+            "Core" + str(x) + " (Socket " + str(appsocket) + ")") + 5].tolist())[1:]).astype(float) * 1000 * 1000)
         opl3hitcore.append(np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc(
-            "Core" + str(x) + " (Socket " + str(appsocket) + ")") + 6].tolist())[1:]).astype(np.float) * 100)
+            "Core" + str(x) + " (Socket " + str(appsocket) + ")") + 6].tolist())[1:]).astype(float) * 100)
         opl2hitcore.append(np.asarray((oppcmdata.iloc[:, oppcmdata.columns.get_loc(
-            "Core" + str(x) + " (Socket " + str(appsocket) + ")") + 7].tolist())[1:]).astype(np.float) * 100)
+            "Core" + str(x) + " (Socket " + str(appsocket) + ")") + 7].tolist())[1:]).astype(float) * 100)
 
     opl3misscoreavg = []
     opl3misscoreavgdiff = []
@@ -1275,8 +1222,8 @@ if openabled is True and stepsenabled is True:
 
     opwallpdata = pandas.read_csv('tmp/wallpower_op.csv', sep=',', low_memory=False)
     opwallpdatapoints = opwallpdata.shape[0] * opwallpdata.shape[1]
-    opwallpower = np.asarray(opwallpdata["power"].tolist()).astype(np.int)
-    opwallpowertime = np.asarray(opwallpdata["time"].tolist()).astype(np.int)
+    opwallpower = np.asarray(opwallpdata["power"].tolist()).astype(int)
+    opwallpowertime = np.asarray(opwallpdata["time"].tolist()).astype(int)
     opwallpowertimezero = opwallpowertime[0]
     opwallpowerx = []
     for x in opwallpowertime:
@@ -1437,51 +1384,42 @@ if openabled is True and stepsenabled is True:
     if telemetryenabled is True:
         optelemdata = pandas.read_csv('tmp/telemetry_op.csv', sep=',', low_memory=False)
         optelemdatapoints = optelemdata.shape[0] * optelemdata.shape[1]
-        optelempkts = np.asarray(optelemdata["tx_good_packets"].tolist()).astype(np.int)
-        optelembytes = np.asarray(optelemdata["tx_good_bytes"].tolist()).astype(np.int)
-        optelemerrors = np.asarray(optelemdata["tx_errors"].tolist()).astype(np.int)
-        optelemdropped = np.asarray(optelemdata["tx_dropped"].tolist()).astype(np.int)
-        optelemtime = np.asarray(optelemdata["time"].tolist()).astype(np.float)
+        optelempkts = np.asarray(optelemdata["tx_good_packets"].tolist()).astype(int)
+        optelembytes = np.asarray(optelemdata["tx_good_bytes"].tolist()).astype(int)
+        optelemerrors = np.asarray(optelemdata["tx_errors"].tolist()).astype(int)
+        optelemtime = np.asarray(optelemdata["time"].tolist()).astype(float)
         optelempktdist = optelemdata.loc[:, ["tx_size_64_packets",
                                              "tx_size_65_to_127_packets",
                                              "tx_size_128_to_255_packets",
                                              "tx_size_256_to_511_packets",
                                              "tx_size_512_to_1023_packets",
-                                             "tx_size_1024_to_1522_packets",
-                                             "tx_size_1523_to_max_packets"]].tail(1).values[0]
+                                             "tx_size_1024_to_max_packets"]].tail(1).values[0]
         optelempktsizes = ["64",
                            "65 to 127",
                            "128 to 255",
                            "256 to 511",
                            "512 to 1024",
-                           "1024 to 1522",
-                           "1523 to max"]
+                           "1024 to max"]
         optelemrxerrors = optelemdata.loc[:, "rx_errors"].tail(1).values[0]
         optelemrxerrorsdiff = optelemrxerrors - telemrxerrors
         optelemrxerrorsbool = False
         optelemtxerrors = optelemdata.loc[:, "tx_errors"].tail(1).values[0]
         optelemtxerrorsdiff = optelemtxerrors - telemtxerrors
         optelemtxerrorsbool = False
-        optelemrxdropped = optelemdata.loc[:, "rx_dropped"].tail(1).values[0]
+        optelemrxdropped = optelemdata.loc[:, "rx_management_dropped"].tail(1).values[0]
         optelemrxdroppeddiff = optelemrxdropped - telemrxdropped
         optelemrxdroppedbool = False
-        optelemtxdropped = optelemdata.loc[:, "tx_dropped"].tail(1).values[0]
-        optelemtxdroppeddiff = optelemtxdropped - telemtxdropped
-        optelemtxdroppedbool = False
 
-        if int(optelemrxerrors) is not 0:
+        if int(optelemrxerrors) != 0:
             print("ERROR: RX errors occurred during this test (rx_errors: " + str(optelemrxerrors) + ")")
             optelemrxerrorsbool = True
-        if int(optelemtxerrors) is not 0:
+        if int(optelemtxerrors) != 0:
             print("ERROR: TX errors occurred during this test (tx_errors: " + str(optelemtxerrors) + ")")
             optelemtxerrorsbool = True
 
-        if int(optelemrxdropped) is not 0:
-            print("ERROR: RX Packets were dropped during this test (rx_dropped: " + str(optelemrxdropped) + ")")
+        if int(optelemrxdropped) != 0:
+            print("ERROR: RX Packets were dropped during this test (rx_management_dropped: " + str(optelemrxdropped) + ")")
             optelemrxdroppedbool = True
-        if int(optelemtxdropped) is not 0:
-            print("ERROR: TX Packets were dropped during this test (tx_dropped: " + str(optelemtxdropped) + ")")
-            optelemtxdroppedbool = True
 
         # Generate an op figure for packet distribution
         plt.figure(16)
@@ -1530,9 +1468,9 @@ if openabled is True and stepsenabled is True:
 
         optelempktssec = []
         for i, y in enumerate(optelempktsreset):
-            if i is not 0 and i is not 1:
+            if i != 0 and i != 1:
                 optelempktssec.append((y - optelempktsreset[i - 1]) / teststepsize)
-            elif i is 1:
+            elif i == 1:
                 val = (y - optelempktsreset[i - 1]) / teststepsize
                 optelempktssec.append(val)
                 optelempktssec[0] = val
@@ -1544,9 +1482,9 @@ if openabled is True and stepsenabled is True:
 
         optelemthroughput = []
         for i, y in enumerate(optelembytesreset):
-            if i is not 0 and i is not 1:
+            if i != 0 and i != 1:
                 optelemthroughput.append((y - optelembytesreset[i - 1]) / 1000000000 * 8 / teststepsize)
-            elif i is 1:
+            elif i == 1:
                 val = ((y - optelembytesreset[i - 1]) / 1000000000 * 8 / teststepsize)
                 optelemthroughput.append(val)
                 optelemthroughput[0] = val
@@ -1610,23 +1548,18 @@ if openabled is True and stepsenabled is True:
         else:
             optelemhtml += "<h3 style='color:red;font-weight:bold;'>RX Dropped Packets: " +\
                            str(optelemrxdropped) + " (" + '{0:+0d}'.format(optelemrxdroppeddiff) + ")</h3>"
-        if optelemtxdroppedbool is False:
-            optelemhtml += "<h3 style='color:green;font-weight:bold;'>TX Dropped Packets: " +\
-                           str(optelemtxdropped) + " (" + '{0:+0d}'.format(optelemtxdroppeddiff) + ")</h3>"
-        else:
-            optelemhtml += "<h3 style='color:red;font-weight:bold;'>TX Dropped Packets: " +\
-                           str(optelemtxdropped) + " (" + '{0:+0d}'.format(optelemtxdroppeddiff) + ")</h3>"
     else:
-        optelemhtml += "<h2>Telemetry</h2><p style='color:red'>Telemetry is disabled</p>"
+        #optelemhtml += "<h2>Telemetry</h2><p style='color:red'>Telemetry is disabled</p>"
+        optelemhtml += ""
 
     oprechtml = "<h2>Optimisation Recommendations</h2>"
     # Generate op recommendations
     # If the mem b/w has improved while there was no decrease in throughput and no errors or drops
     #   Then recommend mem op if not dont recommend
     if ((opsocketreadavgdiff < -25.0) and (opsocketwriteavgdiff < -25.0) and
-            (optelemthroughputavgdiff > -0.2) and optelemrxdropped <= 0 and optelemtxdropped <= 0):
+            (optelemthroughputavgdiff > -0.2) and optelemrxdropped <= 0):
         oprechtml += "<p>It is recommended to change from ring mempools to stack mempools based on the optimisation " +\
-                     "results.<br/>This can be done by setting CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS=\"stack\" in the " +\
+                     "results.<br/>This can be done by setting RTE_MBUF_DEFAULT_MEMPOOL_OPS=\"stack\" in the " +\
                      "DPDK common_base file.</br>Please manually review this report to confirm that this " +\
                      "recommendation is right for your project.</p>"
     else:
@@ -1648,11 +1581,11 @@ if openabled is True and stepsenabled is True:
 
     # Write old DPDK config file back
     print("\nSetting DPDK Configuration back to original")
-    for line in fileinput.FileInput(rtesdk + "/config/common_base", inplace=1):
-        if "CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS" in line and memop is True:
-            sys.stdout.write('CONFIG_RTE_MBUF_DEFAULT_MEMPOOL_OPS="ring_mp_mc"\n')
-        elif "CONFIG_RTE_MEMPOOL_CACHE_MAX_SIZE" in line and memop is True and cacheadjust is True:
-            sys.stdout.write('CONFIG_RTE_MEMPOOL_CACHE_MAX_SIZE=' + cacheorig + '\n')
+    for line in fileinput.FileInput(dpdklocation + "config/rte_config.h", inplace=1):
+        if "RTE_MBUF_DEFAULT_MEMPOOL_OPS" in line and memop is True:
+            sys.stdout.write('#define RTE_MBUF_DEFAULT_MEMPOOL_OPS "ring_mp_mc"\n')
+        elif "RTE_MEMPOOL_CACHE_MAX_SIZE" in line and memop is True and cacheadjust is True:
+            sys.stdout.write('#define RTE_MEMPOOL_CACHE_MAX_SIZE ' + cacheorig + '\n')
         else:
             sys.stdout.write(line)
 
@@ -1667,8 +1600,7 @@ if openabled is True and stepsenabled is True:
 
     # Rebuild DPDK with original DPDK config
     print("Rebuilding DPDK and DPDK App with original configuration options (This can take several minutes)")
-    dpdkrebuild = subprocess.Popen("cd " + rtesdk + "; " + dpdkmakecmd + "; cd " + applocation + "; " +
-                                   appmakecmd + ";",
+    dpdkrebuild = subprocess.Popen("cd " + dpdklocation + "; " + dpdkbuildcmd + ";",
                                    shell=True,
                                    stdout=subprocess.DEVNULL,
                                    stderr=subprocess.DEVNULL)
@@ -1698,10 +1630,10 @@ reporttime2 = strftime("%I:%M%p %d/%m/%Y", gmtime())
 
 # If a project name is specified add it to the report
 projectdetailshtml = ""
-if projectname is not None and projectname is not "":
+if projectname is not None and projectname != "":
     projectdetailshtml += "<p style='font-size: 18px;'>Project: " + projectname + "</p>"
 # If a tester is specified add their details to the report
-if testername is not None and testeremail is not None and testername is not "" and testeremail is not "":
+if testername is not None and testeremail is not None and testername != "" and testeremail != "":
     projectdetailshtml += "<p style='font-size: 18px;'>Tester: " + testername + " (" + testeremail + ")</p>"
 
 # If op enabled then split the report under 2 main headings
@@ -1720,7 +1652,7 @@ if doatack is True:
               "<p>This report was compiled using the DPDK Optimisation &amp; Analysis Tool or DOAT for short (<i>Pronunciation: d&omacr;t</i>)</p>" +\
               "<p>DOAT is a tool for analysing and assisting in the optimisation of applications built using DPDK. " +\
               "DOAT is an out of band analysis tool that does not require the DPDK app being analysed to be changed.</p>" +\
-              "<p>DOAT was developed by <a href='http://conorwalsh.net' target='_blank'>Conor Walsh (conor@conorwalsh.net</a>" +\
+              "<p>DOAT was developed by <a href='http://conorwalsh.net' target='_blank'>Conor Walsh (conor@conorwalsh.net) </a>" +\
               "as part of his final year project for his degree in Electronic and Computer Engineering at the University of Limerick. " +\
               "Hardware and guidance for the project was provided by the Networks Platform Group in Intel (Shannon, Ireland).</p>" +\
               "<p>DOAT is available as an open source project: <a href='https://github.com/conorwalsh/doat/' name='git' target='_blank'>" +\

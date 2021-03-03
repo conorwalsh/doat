@@ -49,19 +49,7 @@ def doat_motd():
     print("   DPDK Optimisation and Analysis Tool")
     # Print Author and Year
     print("          (c) Conor Walsh "+str(now.year)+"\n")
-    print("                Version 1.0\n")
-
-
-# Function to check if the required environment variables are set
-def sys_check():
-    # Abort if RTE_SDK is not set
-    if "RTE_SDK" not in os.environ:
-        sys.exit("RTE_SDK has not been set, ABORT!")
-    # Abort if RTE_TARGET is not set
-    if "RTE_TARGET" not in os.environ:
-        sys.exit("RTE_TARGET has not been set, ABORT!")
-    # Alert user if the checks have passed
-    print("System Checks PASSED")
+    print("               Version 20.11\n")
 
 
 # Function to make the program wait for a set number of seconds
