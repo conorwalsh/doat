@@ -1,7 +1,8 @@
 # <img src="/webcomponents/doat_logo.png" height="120" />
 > DOAT: DPDK Optimisation &amp; Analysis Tool
 
-![Test Repo](https://github.com/conorwalsh/doat/actions/workflows/test_repo.yaml/badge.svg)
+[![Repo Tests](https://github.com/conorwalsh/doat/actions/workflows/test_repo.yaml/badge.svg)](https://github.com/conorwalsh/doat/actions/workflows/test_repo.yaml)
+[![CodeQL](https://github.com/conorwalsh/doat/actions/workflows/codeql-analysis.yaml/badge.svg)](https://github.com/conorwalsh/doat/actions/workflows/codeql-analysis.yaml)
 ![Status](https://img.shields.io/badge/status-released-green.svg?style=flat-square)
 [![Maintenance](https://img.shields.io/badge/maintained-yes-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
 [![GitHub tag](https://img.shields.io/badge/version-20.11-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
