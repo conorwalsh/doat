@@ -1,3 +1,6 @@
+# DOAT specific files
+run_dpdk.sh
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
