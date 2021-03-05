@@ -938,7 +938,7 @@ if memop is True:
 
 # If optimisation and any optimisation steps are enabled then perform optimisation
 if openabled and stepsenabled:
-    # Rewrite DPDK configuration (common_base) with updated options
+    # Rewrite DPDK configuration (/config/rte_config.h) with updated options
     print("\nModifying DPDK Configuration")
     for line in fileinput.FileInput(dpdklocation + "/config/rte_config.h", inplace=1):
         # Change mempool type
@@ -1558,7 +1558,7 @@ if openabled and stepsenabled:
             (optelemthroughputavgdiff > -0.2) and optelemrxdropped <= 0):
         oprechtml += "<p>It is recommended to change from ring mempools to stack mempools based on the optimisation "\
                      + "results.<br/>This can be done by setting RTE_MBUF_DEFAULT_MEMPOOL_OPS=\"stack\" in the "\
-                     + "DPDK common_base file.</br>Please manually review this report to confirm that this "\
+                     + "DPDK /config/rte_config.h file.</br>Please manually review this report to confirm that this "\
                      + "recommendation is right for your project.</p>"
     else:
         oprechtml += "<p>It is recommended not to change from ring mempools to stack mempools based on the "\
