@@ -95,11 +95,11 @@ Available Optimisation Steps:
     * This optimisation step is a process for optimising memory bandwidth usage of a dual threaded DPDK application.
     * This is based on [this paper](https://software.intel.com/en-us/articles/optimize-memory-usage-in-multi-threaded-data-plane-development-kit-dpdk-applications), which was published by Intel (written by the original DOAT author).
 
-The optimisation steps work by manipulating the options in the DPDK configuration file (common_base), rebuilding DPDK with these new options and comparing the results. If the results are better, the changes are suggested to the user.
+The optimisation steps work by manipulating the options in the DPDK configuration file (/config/rte_config.h), rebuilding DPDK with these new options and comparing the results. If the results are better, the changes are suggested to the user.
 
 An application that works well for demonstarting the effects of the Memory Bandwidth Optimisation step is the qos_sched_custom app that the author developed and used to test the optimisation for DOAT. The app is available here: [qos_sched_custom](https://github.com/conorwalsh/qos_sched_custom). This app is based on the DPDK Qos Scheduler Sample Application which is designed to showcase what DPDK QoS can do. The app was built to profile the performance of DPDK QoS. The app expands the information that is printed to the user and now displays cycle costs. The app also uses MAC addresses for classifying packets which is easier to use.
 
-_The DPDK common_base file has over 350 options and as more suitable optimisation steps are discovered, they can be added to DOAT_
+_The DPDK rte_config.h file has many options and as more suitable optimisation steps are discovered, they can be added to DOAT_
 
 ## Website
 
