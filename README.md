@@ -59,6 +59,10 @@ _Example DOAT Reports can be seen in the examples directory of this repo_
 
 ## Release History
 
+* 21.08
+    * Fixed telemetry items that were renamed
+    * More robust way to find wkhtmltopdf
+    * Other minor fixes 
 * 20.11
     * DOAT now compatible with DPDK 20.11
     * Dependencies updated
