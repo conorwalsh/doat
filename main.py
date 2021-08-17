@@ -172,7 +172,7 @@ else:
 # The command that is run in $RTE_SDK to build DPDK
 dpdkbuildcmd = config['OPTIMISATION']['dpdkbuildcmd']
 if dpdkbuildcmd is not None and openabled is True:
-    print("DPDK Make Command:", dpdkbuildcmd)
+    print("DPDK Build Command:", dpdkbuildcmd)
 elif openabled is True:
     sys.exit("Optimisation is enabled but dpdkbuildcmd in config.cfg has not been set, ABORT!")
 
@@ -750,20 +750,22 @@ if telemetryenabled:
                                      "tx_size_128_to_255_packets",
                                      "tx_size_256_to_511_packets",
                                      "tx_size_512_to_1023_packets",
-                                     "tx_size_1024_to_max_packets"]].tail(1).values[0]
+                                     "tx_size_1024_to_1522_packets",
+                                     "tx_size_1523_to_max_packets"]].tail(1).values[0]
     # Array of human readable names for packet distribution
     telempktsizes = ["64",
                      "65 to 127",
                      "128 to 255",
                      "256 to 511",
                      "512 to 1024",
-                     "1024 to max"]
+                     "1024 to 1522",
+                     "1523 to max"]
     # Extract error and dropped packet data
     telemrxerrors = telemdata.loc[:, "rx_errors"].tail(1).values[0]
     telemrxerrorsbool = False
     telemtxerrors = telemdata.loc[:, "tx_errors"].tail(1).values[0]
     telemtxerrorsbool = False
-    telemrxdropped = telemdata.loc[:, "rx_management_dropped"].tail(1).values[0]
+    telemrxdropped = telemdata.loc[:, "rx_dropped_packets"].tail(1).values[0]
     telemrxdroppedbool = False
 
     # Warn the user if any TX or RX errors occurred during the test
@@ -776,7 +778,7 @@ if telemetryenabled:
 
     # Warn the user if any packets were dropped during the test
     if int(telemrxdropped) != 0:
-        print("ERROR: RX Packets were dropped during this test (rx_management_dropped: " + str(telemrxdropped) + ")")
+        print("ERROR: RX Packets were dropped during this test (rx_dropped_packets: " + str(telemrxdropped) + ")")
         telemrxdroppedbool = True
 
     # Generate the packet distribution figure
@@ -1392,20 +1394,22 @@ if openabled and stepsenabled:
                                              "tx_size_128_to_255_packets",
                                              "tx_size_256_to_511_packets",
                                              "tx_size_512_to_1023_packets",
-                                             "tx_size_1024_to_max_packets"]].tail(1).values[0]
+                                             "tx_size_1024_to_1522_packets",
+                                             "tx_size_1523_to_max_packets"]].tail(1).values[0]
         optelempktsizes = ["64",
                            "65 to 127",
                            "128 to 255",
                            "256 to 511",
                            "512 to 1024",
-                           "1024 to max"]
+                           "1024 to 1522",
+                           "1523 to max"]
         optelemrxerrors = optelemdata.loc[:, "rx_errors"].tail(1).values[0]
         optelemrxerrorsdiff = optelemrxerrors - telemrxerrors
         optelemrxerrorsbool = False
         optelemtxerrors = optelemdata.loc[:, "tx_errors"].tail(1).values[0]
         optelemtxerrorsdiff = optelemtxerrors - telemtxerrors
         optelemtxerrorsbool = False
-        optelemrxdropped = optelemdata.loc[:, "rx_management_dropped"].tail(1).values[0]
+        optelemrxdropped = optelemdata.loc[:, "rx_dropped_packets"].tail(1).values[0]
         optelemrxdroppeddiff = optelemrxdropped - telemrxdropped
         optelemrxdroppedbool = False
 
@@ -1417,7 +1421,7 @@ if openabled and stepsenabled:
             optelemtxerrorsbool = True
 
         if int(optelemrxdropped) != 0:
-            print("ERROR: RX Packets were dropped during this test (rx_management_dropped: " + str(optelemrxdropped) + ")")
+            print("ERROR: RX Packets were dropped during this test (rx_dropped_packets: " + str(optelemrxdropped) + ")")
             optelemrxdroppedbool = True
 
         # Generate an op figure for packet distribution
@@ -1699,7 +1703,9 @@ if generatepdf is True:
                   'footer-line': '',
                   'print-media-type': ''
                   }
-    pdfconfig = pdfkit.configuration(wkhtmltopdf='/usr/local/bin/wkhtmltopdf')
+    wkhtmltopdfloc = subprocess.check_output("which wkhtmltopdf",
+            shell=True).decode(sys.stdout.encoding).rstrip().strip()
+    pdfconfig = pdfkit.configuration(wkhtmltopdf=wkhtmltopdfloc)
     pdfkit.from_file('index.html', './tmp/doatreport.pdf', configuration=pdfconfig, options=pdfoptions)
 
 # If Zip generation is enabled then sort all available files into directories, zip the dir and clean up after
