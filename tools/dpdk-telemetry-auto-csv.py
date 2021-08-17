@@ -35,9 +35,10 @@ DEFAULT_ST = 0.25
 DEFAULT_CSV = "tmp/telemetry.csv"
 DEFAULT_PORT = 0
 METRICS = ["tx_good_packets", "tx_good_bytes", "rx_errors", "tx_errors",
-           "rx_management_dropped", "tx_size_64_packets", "tx_size_65_to_127_packets",
+           "rx_dropped_packets", "tx_size_64_packets", "tx_size_65_to_127_packets",
            "tx_size_128_to_255_packets", "tx_size_256_to_511_packets",
-           "tx_size_512_to_1023_packets", "tx_size_1024_to_max_packets"]
+           "tx_size_512_to_1023_packets", "tx_size_1024_to_1522_packets",
+	   "tx_size_1523_to_max_packets"]
 
 
 def read_socket(sock, buf_len, echo=True):

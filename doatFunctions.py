@@ -48,7 +48,7 @@ def doat_motd():
     print("   DPDK Optimisation and Analysis Tool")
     # Print Author and Year
     print("          (c) Conor Walsh " + str(now.year) + "\n")
-    print("               Version 20.11\n")
+    print("               Version 21.08\n")
 
 
 # Function to make the program wait for a set number of seconds

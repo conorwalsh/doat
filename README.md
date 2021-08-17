@@ -5,7 +5,7 @@
 [![CodeQL](https://github.com/conorwalsh/doat/actions/workflows/codeql-analysis.yaml/badge.svg)](https://github.com/conorwalsh/doat/actions/workflows/codeql-analysis.yaml)
 ![Status](https://img.shields.io/badge/status-released-green.svg?style=flat-square)
 [![Maintenance](https://img.shields.io/badge/maintained-yes-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
-[![GitHub tag](https://img.shields.io/badge/version-20.11-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
+[![GitHub tag](https://img.shields.io/badge/version-21.08-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
 ![Code Size](https://img.shields.io/github/languages/code-size/conorwalsh/doat.svg?style=flat-square)
 [![Lines of Code](https://tokei.rs/b1/github/conorwalsh/doat?style=flat-square)]()
 [![GitHub license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/conorwalsh/doat/blob/master/LICENSE)
@@ -59,6 +59,10 @@ _Example DOAT Reports can be seen in the examples directory of this repo_
 
 ## Release History
 
+* 21.08
+    * Fixed telemetry items that were renamed
+    * More robust way to find wkhtmltopdf
+    * Other minor fixes 
 * 20.11
     * DOAT now compatible with DPDK 20.11
     * Dependencies updated
