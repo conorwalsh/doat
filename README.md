@@ -61,6 +61,7 @@ _Example DOAT Reports can be seen in the examples directory of this repo_
 
 * 21.11
     * Tested with latest DPDK LTS release 21.11
+    * master branch renamed to main
     * No major updates
 * 21.08
     * Fixed telemetry items that were renamed
