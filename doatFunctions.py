@@ -26,7 +26,7 @@ def check_pid(pid):
     # Try to send the process a signal (0 will not kill the process)
     try:
         os.kill(pid, 0)
-    # If the OS can't complete the action the process doesn't exist (or is dead)
+    # If the OS can't complete the action the process doesn't exist or is dead
     except OSError:
         return False
     # If the signal can be sent the process exists (or is still alive)
@@ -38,6 +38,9 @@ def check_pid(pid):
 def doat_motd():
     # Get the current time
     now = datetime.datetime.now()
+    # Get current version
+    f = open("VERSION", "r")
+    lines = f.readlines()
     # Print the DOAT ASCII
     print("         _____   ____       _______ ")
     print("        |  __ \ / __ \   /\|__   __|")
@@ -48,7 +51,7 @@ def doat_motd():
     print("   DPDK Optimisation and Analysis Tool")
     # Print Author and Year
     print("          (c) Conor Walsh " + str(now.year) + "\n")
-    print("               Version 21.08\n")
+    print("               Version {}\n".format(lines[0]))
 
 
 # Function to make the program wait for a set number of seconds
