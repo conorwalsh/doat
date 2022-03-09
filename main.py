@@ -383,8 +383,8 @@ wallp = subprocess.Popen("echo 'power,time\n' > tmp/wallpower.csv; while true; d
 # If telemetry is enabled then spawn the telemetry tool in a new process
 # This tool uses the DPDK telemetry API to get statistics about the DPDK app
 if telemetryenabled is True:
-    telem = subprocess.Popen('./tools/dpdk-telemetry-auto-csv.py tmp/telemetry.csv ' +
-                             str(testruntime + 2) + ' ' + str(teststepsize) + ' ' + str(telemetryport),
+    telem = subprocess.Popen('./tools/dpdk_telemetry_auto_csv.py -c tmp/telemetry.csv -r ' +
+                             str(testruntime + 2) + ' -s ' + str(teststepsize) + ' -p ' + str(telemetryport),
                              stdout=subprocess.DEVNULL,
                              stderr=subprocess.STDOUT,
                              shell=True,
@@ -1034,8 +1034,8 @@ if openabled and stepsenabled:
                                preexec_fn=os.setsid)
 
     if telemetryenabled:
-        optelem = subprocess.Popen('./tools/dpdk-telemetry-auto-csv.py tmp/telemetry_op.csv ' +
-                                   str(testruntime + 2) + ' ' + str(teststepsize) + ' ' + str(telemetryport),
+        optelem = subprocess.Popen('./tools/dpdk_telemetry_auto_csv.py -c tmp/telemetry_op.csv -r ' +
+                                   str(testruntime + 2) + ' -s ' + str(teststepsize) + ' -p ' + str(telemetryport),
                                    stdout=subprocess.DEVNULL,
                                    stderr=subprocess.STDOUT,
                                    shell=True,
