@@ -19,7 +19,7 @@
 
 """
 
-from doatFunctions import check_pid, doat_motd, progress_bar, kill_group_pid
+from doat_functions import check_pid, doat_motd, progress_bar, kill_group_pid
 import sys
 import os
 import subprocess
