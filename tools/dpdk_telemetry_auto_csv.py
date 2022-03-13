@@ -20,6 +20,7 @@
 """
 
 
+# Import standard modules.
 import argparse
 import glob
 import json
@@ -28,7 +29,7 @@ import socket
 import time
 
 
-# global vars
+# Global variables.
 TELEMETRY_VERSION = 'v2'
 METRICS = ['tx_good_packets', 'tx_good_bytes', 'rx_errors', 'tx_errors',
            'rx_dropped_packets', 'tx_size_64_packets',
@@ -79,7 +80,7 @@ def handle_socket(sock_path, run_time, step_time, port, csv_path):
     json_reply = read_socket(sock, 1024)
     output_buf_len = json_reply['max_output_len']
 
-    # Run stats collection every step size until test over
+    # Run stats collection every step size until test over.
     current_time = 0
     while current_time <= run_time:
         sock.send(f'/ethdev/xstats,{port}'.encode())
@@ -140,15 +141,15 @@ def main():
     print(f'Test step size: {args.step_time} seconds')
     print(f'Port: {args.port}')
 
-    # Create directory if it doesn't exist
+    # Create directory if it doesn't exist.
     if not os.path.exists('tmp'):
         os.makedirs('tmp')
 
-    # Delete file if already exists
+    # Delete file if already exists.
     if os.path.exists(args.csv_path):
         os.remove(args.csv_path)
 
-    # Setup CSV header row
+    # Setup CSV header row.
     csv_file = open(args.csv_path, 'w')
     csv_file.write('time,')
     for metric in METRICS:
@@ -156,12 +157,12 @@ def main():
     csv_file.write('\n')
     csv_file.close()
 
-    # Path to sockets for processes run as a root user
+    # Path to sockets for processes run as a root user.
     for root_sock in glob.glob('/var/run/dpdk/*/dpdk_telemetry.'
                                f'{TELEMETRY_VERSION}'):
         handle_socket(root_sock, args.run_time, args.step_time, args.port,
                       args.csv_path)
-    # Path to sockets for processes run as a regular user
+    # Path to sockets for processes run as a regular user.
     for unp_sock in glob.glob(f'{os.environ.get("XDG_RUNTIME_DIR", "/tmp")}/'
                               f'dpdk/*/dpdk_telemetry.{TELEMETRY_VERSION}'):
         handle_socket(unp_sock, args.run_time, args.step_time, args.port,
