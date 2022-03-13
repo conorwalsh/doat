@@ -361,8 +361,8 @@ def safeexit():
         # Remove test results from tmp directory and index.html.
         os.system('rm -rf tmp')
         os.remove('index.html')
-    except OSError as e:
-        print('Failed to remove temporary files', e)
+    except OSError as err:
+        print('Failed to remove temporary files', err)
     # Kill the test process.
     kill_group_pid(testpid)
 
@@ -489,13 +489,13 @@ if appdiedduringtest is True:
 # PCM tool exports CSVs that use semicolons instead of the standard comma.
 # Open file and replace all semicolons with commas.
 # This could have been used but its more convenient for the user.
-f = open('tmp/pcm.csv', 'r')
-filedata = f.read()
-f.close()
+csv_file = open('tmp/pcm.csv', 'r')
+filedata = csv_file.read()
+csv_file.close()
 newdata = filedata.replace(';', ',')
-f = open('tmp/pcm.csv', 'w')
-f.write(newdata)
-f.close()
+csv_file = open('tmp/pcm.csv', 'w')
+csv_file.write(newdata)
+csv_file.close()
 
 # Read the PCM CSV using pandas.
 pcmdata = pandas.read_csv('tmp/pcm.csv', low_memory=False)
@@ -608,7 +608,8 @@ plt.xlim(right=max(socketx))
 plt.savefig('./tmp/membw.png', bbox_inches='tight')
 
 # Generate the memory bandwidth html code for the report.
-membwhtml = ('<h2>Memory Bandwidth</h2><img src="./tmp/membw.png"/>'
+membwhtml = ('<h2>Memory Bandwidth</h2>'
+             '<img src="./tmp/membw.png" style="max-width: 650px"/>'
              f'<p>Read Avg: {socketreadavg}MBps</p><p>Write Avg: '
              f'{socketwriteavg}MBps</p><p>Write to Read Ratio: '
              f'{socketwritereadratio}</p><p><a href="./tmp/pcm.csv" '
@@ -631,7 +632,8 @@ for x in wallpowertime:
 wallpoweravg = round(sum(wallpower) / len(wallpower), 1)
 
 # Generate the power html for the report.
-wallpowerhtml = ('<h2>Wall Power</h2><img src="./tmp/wallpower.png"/>'
+wallpowerhtml = ('<h2>Wall Power</h2>'
+                 '<img src="./tmp/wallpower.png" style="max-width: 650px"/>'
                  f'<p>Wall Power Avg: {wallpoweravg}Watts</p>'
                  '<p><a href="./tmp/wallpower.csv" class="btn btn-info" '
                  'role="button">Download Power CSV</a>')
@@ -670,7 +672,8 @@ plt.xlim(right=max(socketx))
 plt.savefig('./tmp/l3miss.png', bbox_inches='tight')
 
 # Generate the ls cache misses html for the report.
-l3misshtml = '<h2>L3 Cache</h2><img src="./tmp/l3miss.png"/>'
+l3misshtml = (
+    '<h2>L3 Cache</h2><img src="./tmp/l3miss.png" style="max-width: 650px"/>')
 # Generate html for the master core if enabled.
 if appmasterenabled is True:
     l3misshtml += (f'<p>Master Core ({appmaster}) L3 Misses: '
@@ -697,7 +700,8 @@ plt.ylim(bottom=0)
 plt.xlim(left=0)
 plt.xlim(right=max(socketx))
 plt.savefig('./tmp/l2miss.png', bbox_inches='tight')
-l2misshtml = '<h2>L2 Cache</h2><img src="./tmp/l2miss.png"/>'
+l2misshtml = (
+    '<h2>L2 Cache</h2><img src="./tmp/l2miss.png" style="max-width: 650px"/>')
 if appmasterenabled is True:
     l2misshtml += (f'<p>Master Core ({appmaster}) L2 Misses: '
                    '{l3missmasteravg}</p>')
@@ -722,7 +726,7 @@ plt.ylim(bottom=0)
 plt.xlim(left=0)
 plt.xlim(right=max(socketx))
 plt.savefig('./tmp/l3hit.png', bbox_inches='tight')
-l3hithtml = '<img src="./tmp/l3hit.png"/>'
+l3hithtml = '<img src="./tmp/l3hit.png" style="max-width: 650px"/>'
 if appmasterenabled is True:
     l3hithtml += f'<p>Master Core ({appmaster}) L3 Hits: {l3hitmasteravg}%</p>'
 for i, x in enumerate(l3hitcoreavg):
@@ -746,7 +750,7 @@ plt.ylim(bottom=0)
 plt.xlim(left=0)
 plt.xlim(right=max(socketx))
 plt.savefig('./tmp/l2hit.png', bbox_inches='tight')
-l2hithtml = '<img src="./tmp/l2hit.png"/>'
+l2hithtml = '<img src="./tmp/l2hit.png" style="max-width: 650px"/>'
 if appmasterenabled is True:
     l2hithtml += f'<p>Master Core ({appmaster}) L3 Hits: {l2hitmasteravg}%</p>'
 for i, x in enumerate(l2hitcoreavg):
@@ -935,13 +939,16 @@ if telemetryenabled:
     plt.savefig('./tmp/speeds.png', bbox_inches='tight')
 
     # Add generated figures, averages and maximums to the telemetry html.
-    telemhtml += (f'<h2>Telemetry</h2><img src="./tmp/pktdist.png"/><br/>'
-                  '<img src="./tmp/transfer.png"/><p>Total Data Transferred: '
-                  f'{telemgbytesmax}GB</p><p>Total Packets Transferred: '
+    telemhtml += (f'<h2>Telemetry</h2><img src="./tmp/pktdist.png" '
+                  'style="max-width: 650px"/><p></p>'
+                  '<img src="./tmp/transfer.png" style="max-width: 650px"/>'
+                  f'<p>Total Data Transferred: {telemgbytesmax}GB</p>'
+                  '<p>Total Packets Transferred: '
                   f'{format(telempktsresetmax, ",")} packets</p>'
-                  '<img src="./tmp/speeds.png"/><p>Average Throughput: '
-                  f'{telemthroughputavg} Gbps</p><p>Average Packets Per '
-                  f'Second: {format(telempktsecavg, ",")} pps</p>')
+                  '<img src="./tmp/speeds.png" style="max-width: 650px"/>'
+                  f'<p>Average Throughput: {telemthroughputavg} Gbps</p>'
+                  '<p>Average Packets Per Second: '
+                  f'{format(telempktsecavg, ",")} pps</p>')
 
     # Add telemetry CSV to telemetry html.
     telemhtml += ('<p><a href="./tmp/telemetry.csv" class="btn btn-info" '
@@ -1307,7 +1314,8 @@ if openabled and stepsenabled:
     plt.savefig('./tmp/membw_op.png', bbox_inches='tight')
 
     opmembwhtml = (
-        '<h2>Memory Bandwidth</h2><img src="./tmp/membw_op.png"/>'
+        '<h2>Memory Bandwidth</h2>'
+        '<img src="./tmp/membw_op.png" style="max-width: 650px"/>'
         f'<p>Read Avg: {opsocketreadavg}MBps ({opsocketreadavgdiff:+0.1f}'
         f'%)</p><p>Write Avg: {opsocketwriteavg}MBps '
         f'({opsocketwriteavgdiff:+0.1f}%)</p><p>Write to Read Ratio: '
@@ -1329,7 +1337,8 @@ if openabled and stepsenabled:
         round((((opwallpoweravg - wallpoweravg) / wallpoweravg) * 100), 1))
 
     opwallpowerhtml = (
-        '<h2>Wall Power</h2><img src="./tmp/wallpower_op.png"/>'
+        '<h2>Wall Power</h2>'
+        '<img src="./tmp/wallpower_op.png" style="max-width: 650px"/>'
         f'<p>Wall Power Avg: {opwallpoweravg}Watts ({opwallpoweravgdiff:+0.1f}'
         '%)</p><p><a href="./tmp/wallpower_op.csv" class="btn btn-info" '
         '"role="button">Download Power CSV</a>')
@@ -1378,7 +1387,9 @@ if openabled and stepsenabled:
     plt.xlim(left=0)
     plt.xlim(right=max(opsocketx))
     plt.savefig('./tmp/l3miss_op.png', bbox_inches='tight')
-    opl3misshtml = '<h2>L3 Cache</h2><img src="./tmp/l3miss_op.png"/>'
+    opl3misshtml = (
+        '<h2>L3 Cache</h2>'
+        '<img src="./tmp/l3miss_op.png" style="max-width: 650px"/>')
     if appmasterenabled is True:
         opl3misshtml += (f'<p>Master Core ({appmaster}) '
                          f'L3 Misses: {opl3missmasteravg} '
@@ -1418,7 +1429,9 @@ if openabled and stepsenabled:
     plt.xlim(left=0)
     plt.xlim(right=max(opsocketx))
     plt.savefig('./tmp/l2miss_op.png', bbox_inches='tight')
-    opl2misshtml = '<h2>L2 Cache</h2><img src="./tmp/l2miss_op.png"/>'
+    opl2misshtml = (
+        '<h2>L2 Cache</h2>'
+        '<img src="./tmp/l2miss_op.png" style="max-width: 650px"/>')
     if appmasterenabled is True:
         opl2misshtml += (f'<p>Master Core ({appmaster}) L2 Misses: '
                          f'{opl3missmasteravg} '
@@ -1457,7 +1470,7 @@ if openabled and stepsenabled:
     plt.xlim(left=0)
     plt.xlim(right=max(opsocketx))
     plt.savefig('./tmp/l3hit_op.png', bbox_inches='tight')
-    opl3hithtml = '<img src="./tmp/l3hit_op.png"/>'
+    opl3hithtml = '<img src="./tmp/l3hit_op.png" style="max-width: 650px"/>'
     if appmasterenabled is True:
         opl3hithtml += (f'<p>Master Core ({appmaster}) L3 Hits: '
                         f'{opl3hitmasteravg}% '
@@ -1496,7 +1509,7 @@ if openabled and stepsenabled:
     plt.xlim(left=0)
     plt.xlim(right=max(opsocketx))
     plt.savefig('./tmp/l2hit_op.png', bbox_inches='tight')
-    opl2hithtml = '<img src="./tmp/l2hit_op.png"/>'
+    opl2hithtml = '<img src="./tmp/l2hit_op.png" style="max-width: 650px"/>'
     if appmasterenabled is True:
         opl2hithtml += (f'<p>Master Core ({appmaster}) L2 Hits: '
                         f'{opl2hitmasteravg}% '
@@ -1679,13 +1692,14 @@ if openabled and stepsenabled:
         plt.savefig('./tmp/speeds_op.png', bbox_inches='tight')
 
         optelemhtml += (
-            '<h2>Telemetry</h2><img src="./tmp/pktdist_op.png"/><br/>'
-            '<img src="./tmp/transfer_op.png"/>'
+            '<h2>Telemetry</h2>'
+            '<img src="./tmp/pktdist_op.png" style="max-width: 650px"/><p></p>'
+            '<img src="./tmp/transfer_op.png" style="max-width: 650px"/>'
             f'<p>Total Data Transferred: {optelemgbytesmax}GB '
             f'({optelemgbytesmaxdiff:+0.1f}GB)</p>'
             f'<p>Total Packets Transferred: {format(optelempktsresetmax, ",")}'
             f' packets ({optelempktsresetmaxdiff:+0,.0f} packets)</p>'
-            '<img src="./tmp/speeds_op.png"/>'
+            '<img src="./tmp/speeds_op.png" style="max-width: 650px"/>'
             f'<p>Average Throughput: {optelemthroughputavg} Gbps '
             f'({optelemthroughputavgdiff:+0.2f}Gbps)</p>'
             f'<p>Average Packets Per Second: {format(optelempktsecavg, ",")}'
@@ -1744,16 +1758,17 @@ if openabled and stepsenabled:
 
     # Generate optimisation html.
     ophtml = (
-        f'<div class="row" style="page-break-after: always;">{opmembwhtml}'
-        f'</div><div class="row" style="page-break-after: always;">'
-        f'{opwallpowerhtml}</div><div class="row" '
+        '<div class="row mt-5" style="page-break-after: always;">'
+        f'{opmembwhtml}</div>'
+        '<div class="row mt-5" style="page-break-after: always;">'
+        f'{opwallpowerhtml}</div><div class="row mt-5" '
         f'style="page-break-after: always;">{opl3misshtml}</div>'
         f'<div class="row" style="page-break-after: always;">{opl3hithtml}'
-        f'</div><div class="row" style="page-break-after: always;">'
+        f'</div><div class="row mt-5" style="page-break-after: always;">'
         f'{opl2misshtml}</div><div class="row"'
         f'style="page-break-after: always;">{opl2hithtml}</div>'
-        f'<div class="row">{optelemhtml}</div>'
-        f'<div class="row" style="page-break-after: always;">{oprechtml}'
+        f'<div class="row mt-5">{optelemhtml}</div>'
+        f'<div class="row mt-5" style="page-break-after: always;">{oprechtml}'
         '</div>')
 
     # Calculate op datapoints.
@@ -1831,10 +1846,10 @@ testheader1 = ''
 testheader2 = ''
 if openabled is True:
     testheader1 = (
-        '<div class="row"><h1 style="font-weight:bold;">'
+        '<div class="row mt-5"><h1 style="font-weight:bold;">'
         'Original DPDK App</h1></div>')
     testheader2 = (
-        '<div class="row"><h1 style="font-weight:bold;">'
+        '<div class="row mt-5"><h1 style="font-weight:bold;">'
         'Modified DPDK App</h1></div>')
 
 # Generate acknowledgement html if enabled.
@@ -1859,7 +1874,7 @@ if doatack is True:
         'Engineering at the University of Limerick. '
         'Hardware and guidance for the project was provided by the Networks '
         'Platform Group in Intel (Shannon, Ireland).</p>'
-        '<p>DOAT is available as an open source project: '
+        '<p>DOAT is available as an open source project.'
         '<a href="https://github.com/conorwalsh/doat/" name="git" '
         'target="_blank>github.com/conorwalsh/doat</a></p>')
 else:
@@ -1874,29 +1889,29 @@ jsontable = ((json2html.convert(json=(str(
 # Write all parts of the report to the html file.
 indexfile.write(
     '<html><head><title>DOAT Report</title><link rel="stylesheet"'
-    'href="./webcomponents/bootstrap.341.min.css">'
-    '<script src="./webcomponents/jquery.341.min.js">'
-    '</script><script src="./webcomponents/bootstrap.341.min.js"></script>'
+    'href="./webcomponents/bootstrap.513.min.css">'
+    '</script><script src="./webcomponents/bootstrap.513.min.js"></script>'
     '<style>@media print{a:not([name="git"]){display:none!important}'
-    'img:not([name="logo"]){width:100%!important}}</style></head>'
-    f'<body><div class="jumbotron text-center"><h1>{reportheader}</h1>'
+    'img:not([name="logo"]){max-width:100%!important}}</style></head>'
+    f'<body><div class="p-5 bg-light text-center"><h1>{reportheader}</h1>'
     '<p style="font-size: 14px">DPDK Optimisation & Analysis Tool</p>'
     f'<p>Report compiled at {reporttime1} using {format(datapoints, ",")} '
     f'data points</p>{projectdetailshtml}</div><div class="container">'
     f'{testheader1}'
-    f'<div class="row" style="page-break-after: always;">{membwhtml}</div>'
-    f'<div class="row" style="page-break-after: always;">{wallpowerhtml}</div>'
-    f'<div class="row" style="page-break-after: always;">{l3misshtml}</div>'
-    f'<div class="row" style="page-break-after: always;">{l3hithtml}</div>'
-    f'<div class="row" style="page-break-after: always;">{l2misshtml}</div>'
-    f'<div class="row" style="page-break-after: always;">{l2hithtml}</div>'
-    f'<div class="row" style="page-break-after: always;">{telemhtml}</div>'
+    f'<div class="row mt-5" style="page-break-after: always;">{membwhtml}'
+    '</div><div class="row mt-5" style="page-break-after: always;">'
+    f'{wallpowerhtml}</div><div class="row mt-5" style="page-break-after: '
+    f'always;">{l3misshtml}</div><div class="row" style="page-break-after: '
+    f'always;">{l3hithtml}</div><div class="row mt-5" style="page-break-after:'
+    f' always;">{l2misshtml}</div><div class="row" style="page-break-after: '
+    f'always;">{l2hithtml}</div><div class="row mt-5" style="page-break-after:'
+    f' always;">{telemhtml}</div>'
     f'{testheader2}'
     f'{ophtml}'
-    '<div class="row"><h2>Test Configuration</h2>'
+    '<div class="row mt-5"><h2>Test Configuration</h2>'
     f'{jsontable}'
-    f'</div><div class="row">{ackhtml}</div><br/><div class="row">{reporthtml}'
-    '</div></div></body></html>')
+    f'</div><div class="row mt-5">{ackhtml}</div><br/>'
+    f'<div class="row mt-5">{reporthtml}</div></div></body></html>')
 # Close the html file.
 indexfile.close()
 
