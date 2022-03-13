@@ -24,7 +24,7 @@
 
     [github.com/opcm/pcm](https://github.com/opcm/pcm)
 * Install IPMItool:
-    ```sh 
+    ```sh
     apt-get install ipmitool
     ```
 * Install wkhtmltopdf (Used for PDF reports ignore if PDF reports not needed):
@@ -39,6 +39,18 @@
     ```sh
     pip3 install -r requirements.txt
     ```
+
+    Required modules:
+    1. configparser
+    2. matplotlib
+    3. numpy
+    4. pandas
+
+    Optional but recommended modules:
+    1. json2html
+    2. pdfkit
+    3. tqdm
+
 _DOAT has been tested on Ubuntu 18.04 and 20.04_
 
 ## Usage
@@ -66,7 +78,7 @@ _Example DOAT Reports can be seen in the examples directory of this repo_
 * 21.08
     * Fixed telemetry items that were renamed
     * More robust way to find wkhtmltopdf
-    * Other minor fixes 
+    * Other minor fixes
 * 20.11
     * DOAT now compatible with DPDK 20.11
     * Dependencies updated

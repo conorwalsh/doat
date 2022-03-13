@@ -14,11 +14,18 @@
 
 """
 
+# Import standard modules.
 import datetime
 import os
 import signal
 import time
-from tqdm import tqdm
+
+# Import third-party modules.
+try:
+    from tqdm import tqdm
+    TQDM_ENABLED = True
+except ImportError:
+    TQDM_ENABLED = False
 
 
 def check_pid(pid):
@@ -72,8 +79,16 @@ def progress_bar(seconds):
     :param seconds: The number of seconds that the progressbar will run for.
     :return: This function has no return value.
     """
-    for _ in tqdm(range(seconds, 0, -1)):
-        time.sleep(1)
+    # Use TQDM to show progress if available.
+    if TQDM_ENABLED:
+        for _ in tqdm(range(seconds, 0, -1)):
+            time.sleep(1)
+    else:
+        for sec in range(seconds, 0, -1):
+            print(f'{sec} seconds left: '
+                  f'{int(((seconds-sec)/seconds)*100)}%    ',
+                  end='\r')
+            time.sleep(1)
 
 
 def kill_group_pid(pid):

@@ -31,12 +31,43 @@ import time
 from time import gmtime, strftime
 
 # Import third-party modules.
-import configparser
-from json2html import json2html
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas
-import pdfkit
+try:
+    import configparser
+except ImportError:
+    sys.exit('The python module \'configparser\' must be installed to use '
+             'DOAT.\nInstall it using pip or the supplied requirements.txt')
+try:
+    from json2html import json2html
+    JSON2HTML_AVAILABLE = True
+except ImportError:
+    JSON2HTML_AVAILABLE = False
+    print('The python module \'json2html\' must be installed to show the DOAT,'
+          'configuartion in the report, this has been disabled for now.\n'
+          'It can be installed using pip or the supplied requirements.txt')
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    sys.exit('The python module \'matplotlib\' must be installed to use DOAT.'
+             '\nInstall it using pip or the supplied requirements.txt')
+try:
+    import numpy as np
+except ImportError:
+    sys.exit('The python module \'numpy\' must be installed to use DOAT.\n'
+             'Install it using pip or the supplied requirements.txt')
+try:
+    import pandas
+except ImportError:
+    sys.exit('The python module \'pandas\' must be installed to use DOAT.\n'
+             'Install it using pip or the supplied requirements.txt')
+try:
+    import pdfkit
+    PDFKIT_AVAILABLE = True
+except ImportError:
+    PDFKIT_AVAILABLE = False
+    print('The python module \'pdfkit\' must be installed to generate PDFs,'
+          'PDF generation has been disabled. It can be installed by '
+          'installing the wkhtmltopdf package and then install the python '
+          'module using pip or the supplied requirements.txt')
 
 # Import custom modules.
 from doat_functions import check_pid, doat_motd, progress_bar, kill_group_pid
@@ -112,7 +143,8 @@ else:
 # Read and store value for generatepdf.
 # This sets if a PDF report will be generated or not.
 generatepdf = False
-if config['REPORTING'].getboolean('generatepdf') is True:
+if (config['REPORTING'].getboolean('generatepdf') is True and
+        PDFKIT_AVAILABLE is True):
     generatepdf = True
     print('PDF report generation is enabled')
 else:
@@ -1882,10 +1914,15 @@ else:
 
 # Create a html file to save the html report.
 indexfile = open('index.html', 'w')
-jsontable = ((json2html.convert(json=(str(
-    {section: dict(config[section]) for section in config.sections()}
+jsontable = ''
+if JSON2HTML_AVAILABLE:
+    jsontable = ((json2html.convert(json=(str(
+        {section: dict(config[section]) for section in config.sections()}
         )).replace("\'", "\""))).replace("border=\"1\"", "")).replace(
             "table", "table class=\"table\"", 1)
+else:
+    jsontable = ('<p>The json2html python module must be installed to show '
+                 'the test configuration.</p>')
 # Write all parts of the report to the html file.
 indexfile.write(
     '<html><head><title>DOAT Report</title><link rel="stylesheet"'
