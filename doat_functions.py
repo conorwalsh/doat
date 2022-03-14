@@ -270,8 +270,16 @@ def doat_config(config_file):
     else:
         print('DPDK telemetry is disabled')
 
-    # Read and store value for telemetryport.
+    # Read and store value for fileprefix and telemetryport.
     if config['telemetry'] is True:
+        config['file_prefix'] = (
+            config_parsed['APPPARAM'].get('fileprefix'))
+        if config['file_prefix']:
+            print('DPDK file prefix:', config['file_prefix'])
+        else:
+            config['file_prefix'] = 'rte'
+            print('No file prefix was specified for telemetry (fileprefix in '
+                  'config.cfg), Defaulting to rte')
         config['telemetry_port'] = (
             config_parsed['APPPARAM'].get('telemetryport'))
         if config['telemetry_port']:
