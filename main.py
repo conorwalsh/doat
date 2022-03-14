@@ -159,8 +159,8 @@ def main():
     if config['telemetry'] is True:
         telemetry_proc = subprocess.Popen(
             './tools/dpdk_telemetry_auto_csv.py -c tmp/telemetry.csv -r '
-            f'{config["test_runtime"] + 2} -s {config["test_step_size"]} -p '
-            f'{config["telemetry_port"]}',
+            f'{config["test_runtime"] + 2} -s {config["test_step_size"]} '
+            f'-f {config["file_prefix"]} -p {config["telemetry_port"]}',
             stdout=subprocess.DEVNULL,
             stderr=subprocess.STDOUT,
             shell=True,
@@ -912,6 +912,7 @@ def main():
                 './tools/dpdk_telemetry_auto_csv.py -c tmp/telemetry_op.csv '
                 f'-r {config["test_runtime"] + 2} '
                 f'-s {config["test_step_size"]} '
+                f'-f {config["file_prefix"]} '
                 f'-p {config["telemetry_port"]}',
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT,

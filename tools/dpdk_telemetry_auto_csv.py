@@ -22,10 +22,10 @@
 
 # Import standard modules.
 import argparse
-import glob
 import json
 import os
 import socket
+import sys
 import time
 
 
@@ -120,6 +120,10 @@ def args_parse():
                         help='Set the path of the CSV file, default: '
                              '\'tmp/telemetry.csv\'',
                         default='tmp/telemetry.csv')
+    parser.add_argument('-f', '--fileprefix', type=str, dest='file_prefix',
+                        help='Set the file_prefix of the DPDK app, default: '
+                             '\'rte\'',
+                        default='rte')
     parser.add_argument('-p', '--port', type=int, dest='port',
                         help='The port to get the stats from',
                         default=0)
@@ -139,6 +143,7 @@ def main():
     print(f'CSV Path: {args.csv_path}')
     print(f'Test length: {args.run_time} seconds')
     print(f'Test step size: {args.step_time} seconds')
+    print(f'File prefix: {args.file_prefix}')
     print(f'Port: {args.port}')
 
     # Create directory if it doesn't exist.
@@ -157,16 +162,18 @@ def main():
     csv_file.write('\n')
     csv_file.close()
 
-    # Path to sockets for processes run as a root user.
-    for root_sock in glob.glob('/var/run/dpdk/*/dpdk_telemetry.'
-                               f'{TELEMETRY_VERSION}'):
+    root_sock = (f'/var/run/dpdk/{args.file_prefix}/'
+                 f'dpdk_telemetry.{TELEMETRY_VERSION}')
+    unp_sock = (f'{os.environ.get("XDG_RUNTIME_DIR", "/tmp")}/dpdk/'
+                f'{args.file_prefix}/dpdk_telemetry.{TELEMETRY_VERSION}')
+    if os.path.exists(root_sock):
         handle_socket(root_sock, args.run_time, args.step_time, args.port,
                       args.csv_path)
-    # Path to sockets for processes run as a regular user.
-    for unp_sock in glob.glob(f'{os.environ.get("XDG_RUNTIME_DIR", "/tmp")}/'
-                              f'dpdk/*/dpdk_telemetry.{TELEMETRY_VERSION}'):
+    elif os.path.exists(unp_sock):
         handle_socket(unp_sock, args.run_time, args.step_time, args.port,
                       args.csv_path)
+    else:
+        sys.exit(f'No sockets found for the app: {args.file_prefix}')
 
 
 if __name__ == '__main__':
