@@ -125,7 +125,7 @@ def safe_exit():
     except OSError as err:
         print('Failed to remove temporary files', err)
 
-    print('Exiting . . .')
+    print('\nExiting . . .')
 
 
 def doat_config(config_file):
