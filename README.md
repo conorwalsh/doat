@@ -1,9 +1,12 @@
+# :warning: This Project is now End of Life (EOL) :warning:
+> _There will be no future updates or support provided!_
+
 # <img src="/webcomponents/doat_logo.png" height="120" />
 > DOAT: DPDK Optimisation &amp; Analysis Tool
 
 [![Repo Tests](https://github.com/conorwalsh/doat/actions/workflows/test_repo.yaml/badge.svg)](https://github.com/conorwalsh/doat/actions/workflows/test_repo.yaml)
 [![CodeQL](https://github.com/conorwalsh/doat/actions/workflows/codeql-analysis.yaml/badge.svg)](https://github.com/conorwalsh/doat/actions/workflows/codeql-analysis.yaml)
-![Status](https://img.shields.io/badge/status-released-green.svg?style=flat-square)
+![Status](https://img.shields.io/badge/status-EOL-red.svg?style=flat-square)
 [![Maintenance](https://img.shields.io/badge/maintained-yes-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
 [![GitHub tag](https://img.shields.io/badge/version-22.03-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
 ![Code Size](https://img.shields.io/github/languages/code-size/conorwalsh/doat.svg?style=flat-square)
@@ -128,7 +131,7 @@ _The DPDK rte_config.h file has many options and as more suitable optimisation s
 
 ## Website
 
-More information about this project can be found on the projects website [doat.dev](https://doat.dev/).
+More information about this project can be found on the projects website [conorwalsh.net/doat](https://conorwalsh.net/doat/).
 
 ## Meta
 
@@ -146,8 +149,4 @@ As part of the final year of my engineering degree, I had to complete a final ye
 
 ## Contributing
 
-1. Fork it (<https://github.com/conorwalsh/doat/fork>)
-2. Create your feature branch (`git checkout -b feature/fooBar`)
-3. Commit your changes (`git commit -am 'Add some fooBar'`)
-4. Push to the branch (`git push origin feature/fooBar`)
-5. Create a new Pull Request
+_As the project is EOL contributions are no longer being accepted!_
