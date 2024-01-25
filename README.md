@@ -7,10 +7,9 @@
 [![Repo Tests](https://github.com/conorwalsh/doat/actions/workflows/test_repo.yaml/badge.svg)](https://github.com/conorwalsh/doat/actions/workflows/test_repo.yaml)
 [![CodeQL](https://github.com/conorwalsh/doat/actions/workflows/codeql-analysis.yaml/badge.svg)](https://github.com/conorwalsh/doat/actions/workflows/codeql-analysis.yaml)
 ![Status](https://img.shields.io/badge/status-EOL-red.svg?style=flat-square)
-[![Maintenance](https://img.shields.io/badge/maintained-yes-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
+[![Maintenance](https://img.shields.io/badge/maintained-no-red.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/graphs/commit-activity)
 [![GitHub tag](https://img.shields.io/badge/version-22.03-green.svg?style=flat-square)](https://GitHub.com/conorwalsh/doat/tags/)
 ![Code Size](https://img.shields.io/github/languages/code-size/conorwalsh/doat.svg?style=flat-square)
-[![Lines of Code](https://tokei.rs/b1/github/conorwalsh/doat?style=flat-square)]()
 [![GitHub license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/conorwalsh/doat/blob/master/LICENSE)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python3-1f425f.svg?style=flat-square)](https://www.python.org/)
 
